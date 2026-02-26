@@ -139,8 +139,8 @@ export default function BehaviorBudgetPage() {
                 className="flex flex-col md:flex-row md:items-center justify-between p-4 md:px-8 lg:px-10 lg:py-6 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-20"
             >
                 <div>
-                    <h1 className="text-3xl font-bold text-text-primary tracking-tight">Previsão Inteligente</h1>
-                    <p className="text-text-secondary mt-1">Acompanhe seu comportamento e alcance suas metas.</p>
+                    <h1 className="text-3xl font-bold text-text-primary tracking-tight">O Poder do Agora</h1>
+                    <p className="text-text-secondary mt-1">Transforme seu controle diário em recompensas futuras.</p>
                 </div>
                 <button
                     onClick={() => {
@@ -169,8 +169,8 @@ export default function BehaviorBudgetPage() {
                         {isPositive ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
                         <p className="font-medium">
                             {isPositive
-                                ? "Você está economizando mais que o planejado. Continue assim!"
-                                : "Atenção: seu ritmo de gastos atual ultrapassa o ideal para o mês."
+                                ? "Você está economizando hoje! Esse excedente financia suas recompensas no futuro."
+                                : "Alerta Precoce: Seu ritmo atual irá deixá-lo no vermelho no fim do mês. Segure os gastos hoje!"
                             }
                         </p>
                     </motion.div>
@@ -187,7 +187,7 @@ export default function BehaviorBudgetPage() {
                             <div className="absolute -right-4 -top-4 w-24 h-24 bg-accent/5 rounded-full blur-2xl group-hover:bg-accent/10 transition-colors"></div>
                             <div className="flex justify-between items-start mb-4">
                                 <div>
-                                    <p className="text-text-secondary font-medium mb-1">Poder de gasto hoje</p>
+                                    <p className="text-text-secondary font-medium mb-1">Seu alvo diário fixo</p>
                                     <h3 className={`text-3xl font-bold tracking-tight ${isPositive ? 'text-success' : 'text-error'}`}>
                                         {formatCurrency(summary.daily_benchmark || 0)}
                                     </h3>
@@ -197,7 +197,7 @@ export default function BehaviorBudgetPage() {
                                 </div>
                             </div>
                             <p className="text-xs text-text-secondary mt-4">
-                                O valor ideal que você tem disponível todos os dias para não ultrapassar a meta.
+                                Este valor é a sua âncora constante. Gaste menos que isso e ganhe o excedente.
                             </p>
                         </motion.div>
 
@@ -210,7 +210,7 @@ export default function BehaviorBudgetPage() {
                         >
                             <div className="flex justify-between items-start mb-4">
                                 <div>
-                                    <p className="text-text-secondary font-medium mb-1">Placar do mês (Saldo)</p>
+                                    <p className="text-text-secondary font-medium mb-1">Bolsão de Recompensas</p>
                                     <h3 className={`text-3xl font-bold tracking-tight ${isPositive ? 'text-success' : 'text-error'}`}>
                                         {isPositive ? '+' : ''}{formatCurrency(summary.saldo || 0)}
                                     </h3>
@@ -220,7 +220,7 @@ export default function BehaviorBudgetPage() {
                                 </div>
                             </div>
                             <p className="text-xs text-text-secondary mt-4 flex items-center gap-1">
-                                {isPositive ? "Você está ganhando do seu próprio orçamento!" : "Você está gastando mais do que o ideal acumulado."}
+                                {isPositive ? "Você acumulou esse valor de 'lucro' pelas suas escolhas." : "Você está devendo ao seu próprio orçamento diário."}
                             </p>
                         </motion.div>
 

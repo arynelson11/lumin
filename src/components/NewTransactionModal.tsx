@@ -15,6 +15,7 @@ export default function NewTransactionModal({
     const [type, setType] = useState<'expense' | 'income'>('expense');
     const [amount, setAmount] = useState('0,00');
     const [sourceType, setSourceType] = useState<'account' | 'card'>('account');
+    const [behaviorType, setBehaviorType] = useState<'fixed' | 'variable'>('variable');
     const [selectedCardId, setSelectedCardId] = useState('');
     const [category, setCategory] = useState('Alimentação');
     const [selectedDebtId, setSelectedDebtId] = useState('');
@@ -31,6 +32,7 @@ export default function NewTransactionModal({
             setAmount('0,00');
             setCategory('Alimentação');
             setSourceType('account');
+            setBehaviorType('variable');
             fetchCards().then(data => {
                 setCardsData(data);
                 if (data.length > 0) setSelectedCardId(data[0].id);
@@ -58,6 +60,7 @@ export default function NewTransactionModal({
             method: sourceType === 'card' ? 'Cartão de Crédito' : 'Conta Corrente',
             amount: type === 'expense' ? -parseFloat(amount.replace(',', '.')) || 0 : parseFloat(amount.replace(',', '.')) || 0,
             type,
+            behavior_type: type === 'income' ? null : behaviorType,
             status: 'completed'
             // We omit the manual date to let Supabase use NOW(), but you could pass the user selected date here.
         };
@@ -247,6 +250,29 @@ export default function NewTransactionModal({
                                         <div className="flex justify-between items-center px-1">
                                             <label className="text-sm font-medium text-text-secondary">Conta de Destino</label>
                                         </div>
+                                    </div>
+                                )}
+
+                                {type === 'expense' && (
+                                    <div className="space-y-2 mt-4">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-sm font-medium text-text-secondary">Poder de Decisão (Tipo de Gasto)</label>
+                                        </div>
+                                        <div className="flex p-1 bg-background rounded-xl border border-border">
+                                            <button
+                                                onClick={() => setBehaviorType('variable')}
+                                                className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${behaviorType === 'variable' ? 'bg-surface shadow-sm text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
+                                            >
+                                                Gasto de Fluxo (Variável)
+                                            </button>
+                                            <button
+                                                onClick={() => setBehaviorType('fixed')}
+                                                className={`flex-1 flex justify-center items-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${behaviorType === 'fixed' ? 'bg-surface shadow-sm text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
+                                            >
+                                                Gasto Estruturado (Fixo)
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-text-secondary px-1 text-center mt-1">Gastos de Fluxo abatem do seu Alvo Diário de recompensas.</p>
                                     </div>
                                 )}
 

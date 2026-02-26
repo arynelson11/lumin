@@ -62,12 +62,16 @@ export default function TransactionsPage({ initialSearchQuery = '' }: { initialS
                 const isPendente = tx.status === 'pending';
                 const isParcelada = tx.tags?.includes('Parcelada');
                 const isAssinatura = tx.category === 'Assinaturas' || tx.tags?.includes('Assinatura');
+                const isVariavel = tx.behavior_type === 'variable';
+                const isFixo = tx.behavior_type === 'fixed';
 
                 let localMatch = false;
                 if (activeFilters.includes('Concluídas') && isConcluida) localMatch = true;
                 if (activeFilters.includes('Pendentes') && isPendente) localMatch = true;
                 if (activeFilters.includes('Parceladas') && isParcelada) localMatch = true;
                 if (activeFilters.includes('Assinaturas') && isAssinatura) localMatch = true;
+                if (activeFilters.includes('Gastos Variáveis') && isVariavel) localMatch = true;
+                if (activeFilters.includes('Gastos Estruturados') && isFixo) localMatch = true;
 
                 matchesFilter = localMatch;
             }
@@ -236,6 +240,14 @@ function TransactionsFilter({
 
                     <FilterButton label="Concluídas" active={activeFilters.includes("Concluídas")} onClick={() => toggleFilter("Concluídas")} />
                     <FilterButton label="Pendentes" active={activeFilters.includes("Pendentes")} onClick={() => toggleFilter("Pendentes")} />
+
+                    <div className="w-px h-4 bg-border mx-1 shrink-0"></div>
+
+                    <FilterButton label="Gastos Variáveis" active={activeFilters.includes("Gastos Variáveis")} onClick={() => toggleFilter("Gastos Variáveis")} />
+                    <FilterButton label="Gastos Estruturados" active={activeFilters.includes("Gastos Estruturados")} onClick={() => toggleFilter("Gastos Estruturados")} />
+
+                    <div className="w-px h-4 bg-border mx-1 shrink-0"></div>
+
                     <FilterButton label="Parceladas" active={activeFilters.includes("Parceladas")} onClick={() => toggleFilter("Parceladas")} />
                     <FilterButton label="Assinaturas" active={activeFilters.includes("Assinaturas")} onClick={() => toggleFilter("Assinaturas")} />
                 </div>
