@@ -30,6 +30,7 @@ export default function BehaviorBudgetPage() {
     const [isConfiguring, setIsConfiguring] = useState(false);
     const [budgetInput, setBudgetInput] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [configError, setConfigError] = useState<string | null>(null);
 
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
@@ -55,11 +56,13 @@ export default function BehaviorBudgetPage() {
 
         setIsSaving(true);
         try {
+            setConfigError(null);
             await setVariableBudget(currentMonth, currentYear, Number(budgetInput));
             setIsConfiguring(false);
             await loadData();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Erro ao salvar orçamento", error);
+            setConfigError(error.message || "Erro desconhecido ao salvar o orçamento no Supabase. Verifique se as novas tabelas foram criadas.");
         } finally {
             setIsSaving(false);
         }
@@ -107,6 +110,11 @@ export default function BehaviorBudgetPage() {
                                 />
                             </div>
                         </div>
+                        {configError && (
+                            <div className="p-3 rounded-xl bg-error/10 border border-error/20 text-error text-sm font-medium">
+                                {configError}
+                            </div>
+                        )}
                         <button
                             onClick={handleSaveBudget}
                             disabled={isSaving || !budgetInput}

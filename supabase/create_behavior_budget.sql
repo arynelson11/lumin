@@ -32,17 +32,7 @@ ALTER TABLE monthly_variable_budget ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Usuários podem ver seus próprios orçamentos"
 ON monthly_variable_budget FOR SELECT
 USING (
-    user_id = auth.uid() OR
-    user_id IN (
-        SELECT linked_user_id 
-        FROM household_links 
-        WHERE primary_user_id = auth.uid() OR linked_user_id = auth.uid()
-    ) OR
-    user_id IN (
-        SELECT primary_user_id 
-        FROM household_links 
-        WHERE primary_user_id = auth.uid() OR linked_user_id = auth.uid()
-    )
+    user_id = auth.uid()
 );
 
 CREATE POLICY "Usuários podem inserir seus próprios orçamentos"
@@ -87,18 +77,10 @@ DECLARE
     v_saldo DECIMAL(12, 2) := 0;
     v_projecao DECIMAL(12, 2) := 0;
     v_days_without_spending INTEGER := 0;
-    v_accessible_users UUID[];
+    v_accessible_users UUID[] := ARRAY[p_user_id];
     v_daily_expenses json;
 BEGIN
-    -- Determinar a lista de usuários acessíveis (household)
-    SELECT array_agg(DISTINCT uids.id) INTO v_accessible_users
-    FROM (
-        SELECT p_user_id as id
-        UNION
-        SELECT linked_user_id FROM household_links WHERE primary_user_id = p_user_id
-        UNION
-        SELECT primary_user_id FROM household_links WHERE linked_user_id = p_user_id
-    ) uids;
+    -- Removido a dependência de household_links pois o banco não suporta
 
     -- Obter o orçamento configurado
     SELECT * INTO v_budget FROM monthly_variable_budget 
