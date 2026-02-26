@@ -60,7 +60,7 @@ export default function Dashboard() {
                     <NavItem icon={<ArrowRightLeft size={20} />} label="Transações" active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} />
                     <NavItem icon={<CreditCard size={20} />} label="Parcelamentos" active={activeTab === 'installments'} onClick={() => setActiveTab('installments')} />
                     <NavItem icon={<PieChart size={20} />} label="Assinaturas" active={activeTab === 'subscriptions'} onClick={() => setActiveTab('subscriptions')} />
-                    <NavItem icon={<Target size={20} />} label="Comportamental" active={activeTab === 'behavior-budget'} onClick={() => setActiveTab('behavior-budget')} />
+                    <NavItem icon={<Target size={20} />} label="Gastos Diários" active={activeTab === 'behavior-budget'} onClick={() => setActiveTab('behavior-budget')} />
                     <NavItem icon={<Calendar size={20} />} label="Planejamento" active={activeTab === 'planner'} onClick={() => setActiveTab('planner')} />
                     <NavItem icon={<CreditCard size={20} />} label="Cartões" active={activeTab === 'cards'} onClick={() => setActiveTab('cards')} />
                     <NavItem icon={<ScrollText size={20} />} label="Dívidas" active={activeTab === 'debts'} onClick={() => setActiveTab('debts')} />
@@ -158,7 +158,7 @@ export default function Dashboard() {
                         <div className="grid grid-cols-3 gap-4 mb-6">
                             <MoreMenuItem icon={<Layers size={22} />} label="Parcelas" active={activeTab === 'installments'} onClick={() => { setActiveTab('installments'); setMoreMenuOpen(false); }} />
                             <MoreMenuItem icon={<PieChart size={22} />} label="Assinaturas" active={activeTab === 'subscriptions'} onClick={() => { setActiveTab('subscriptions'); setMoreMenuOpen(false); }} />
-                            <MoreMenuItem icon={<Target size={22} />} label="Comportamental" active={activeTab === 'behavior-budget'} onClick={() => { setActiveTab('behavior-budget'); setMoreMenuOpen(false); }} />
+                            <MoreMenuItem icon={<Target size={22} />} label="Gastos Diários" active={activeTab === 'behavior-budget'} onClick={() => { setActiveTab('behavior-budget'); setMoreMenuOpen(false); }} />
                             <MoreMenuItem icon={<Calendar size={22} />} label="Planejamento" active={activeTab === 'planner'} onClick={() => { setActiveTab('planner'); setMoreMenuOpen(false); }} />
                             <MoreMenuItem icon={<ScrollText size={22} />} label="Dívidas" active={activeTab === 'debts'} onClick={() => { setActiveTab('debts'); setMoreMenuOpen(false); }} />
                             <MoreMenuItem icon={<TrendingUp size={22} />} label="Investimentos" active={activeTab === 'investments'} onClick={() => { setActiveTab('investments'); setMoreMenuOpen(false); }} />
