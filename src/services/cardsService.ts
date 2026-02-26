@@ -2,11 +2,9 @@ import { supabase, getAuthUserId } from '../lib/supabase';
 
 export const fetchCards = async () => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('cards')
             .select('*')
-            .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -35,12 +33,10 @@ export const createCard = async (cardData: any) => {
 
 export const updateCard = async (id: string, updates: any) => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('cards')
             .update(updates)
             .eq('id', id)
-            .eq('user_id', userId)
             .select();
 
         if (error) throw error;
@@ -53,12 +49,10 @@ export const updateCard = async (id: string, updates: any) => {
 
 export const deleteCard = async (id: string) => {
     try {
-        const userId = await getAuthUserId();
         const { error } = await supabase
             .from('cards')
             .delete()
-            .eq('id', id)
-            .eq('user_id', userId);
+            .eq('id', id);
 
         if (error) throw error;
         return true;

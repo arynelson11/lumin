@@ -5,7 +5,7 @@ import { fetchTransactions } from '../services/transactionsService';
 import { fetchInstallments } from '../services/installmentsService';
 import { fetchSubscriptions } from '../services/subscriptionsService';
 import { fetchFixedExpenses, fetchVariableBudgets } from '../services/plannerService';
-import { supabase, getAuthUserId } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 const container = {
     hidden: { opacity: 0 },
@@ -47,29 +47,25 @@ export default function SummaryGrid({ onNavigate }: SummaryGridProps) {
                 // Direct lightweight queries for new sections
                 (async () => {
                     try {
-                        const userId = await getAuthUserId();
-                        const { data } = await supabase.from('cards').select('id,total_limit,used_limit,status').eq('user_id', userId);
+                        const { data } = await supabase.from('cards').select('id,total_limit,used_limit,status');
                         return data || [];
                     } catch { return []; }
                 })(),
                 (async () => {
                     try {
-                        const userId = await getAuthUserId();
-                        const { data } = await supabase.from('debts').select('id,remaining_amount,status').eq('user_id', userId);
+                        const { data } = await supabase.from('debts').select('id,remaining_amount,status');
                         return data || [];
                     } catch { return []; }
                 })(),
                 (async () => {
                     try {
-                        const userId = await getAuthUserId();
-                        const { data } = await supabase.from('investments').select('id,current_value,type').eq('user_id', userId);
+                        const { data } = await supabase.from('investments').select('id,current_value,type');
                         return data || [];
                     } catch { return []; }
                 })(),
                 (async () => {
                     try {
-                        const userId = await getAuthUserId();
-                        const { data } = await supabase.from('goals').select('id,name,current_amount,target_amount,status').eq('user_id', userId);
+                        const { data } = await supabase.from('goals').select('id,name,current_amount,target_amount,status');
                         return data || [];
                     } catch { return []; }
                 })()

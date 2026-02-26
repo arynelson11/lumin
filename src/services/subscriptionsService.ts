@@ -2,11 +2,9 @@ import { supabase, getAuthUserId } from '../lib/supabase';
 
 export const fetchSubscriptions = async () => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('subscriptions')
             .select(`*, subscription_history (*)`)
-            .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -52,12 +50,10 @@ export const createSubscription = async (subData: any, historyItems: any[] = [])
 
 export const updateSubscription = async (id: string, updates: any) => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('subscriptions')
             .update(updates)
             .eq('id', id)
-            .eq('user_id', userId)
             .select();
 
         if (error) throw error;
@@ -70,12 +66,10 @@ export const updateSubscription = async (id: string, updates: any) => {
 
 export const deleteSubscription = async (id: string) => {
     try {
-        const userId = await getAuthUserId();
         const { error } = await supabase
             .from('subscriptions')
             .delete()
-            .eq('id', id)
-            .eq('user_id', userId);
+            .eq('id', id);
 
         if (error) throw error;
         return true;

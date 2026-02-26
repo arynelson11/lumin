@@ -28,11 +28,9 @@ const groupTransactionsByDate = (transactions: any[]) => {
 
 export const fetchTransactions = async () => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('transactions')
             .select('*')
-            .eq('user_id', userId)
             .order('date', { ascending: false });
 
         if (error) throw error;

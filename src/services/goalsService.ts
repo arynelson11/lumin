@@ -18,11 +18,9 @@ export interface Goal {
 
 export const fetchGoals = async (): Promise<Goal[]> => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('goals')
             .select('*')
-            .eq('user_id', userId)
             .order('order_index', { ascending: true });
 
         if (error) throw error;
@@ -41,7 +39,6 @@ export const createGoal = async (goal: Partial<Goal>): Promise<Goal | null> => {
         const { data: existing } = await supabase
             .from('goals')
             .select('order_index')
-            .eq('user_id', userId)
             .order('order_index', { ascending: false })
             .limit(1);
 
@@ -69,12 +66,10 @@ export const createGoal = async (goal: Partial<Goal>): Promise<Goal | null> => {
 
 export const updateGoal = async (id: string, updates: Partial<Goal>): Promise<Goal | null> => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('goals')
             .update(updates)
             .eq('id', id)
-            .eq('user_id', userId)
             .select()
             .single();
 
@@ -88,12 +83,10 @@ export const updateGoal = async (id: string, updates: Partial<Goal>): Promise<Go
 
 export const deleteGoal = async (id: string): Promise<boolean> => {
     try {
-        const userId = await getAuthUserId();
         const { error } = await supabase
             .from('goals')
             .delete()
-            .eq('id', id)
-            .eq('user_id', userId);
+            .eq('id', id);
 
         if (error) throw error;
         return true;
@@ -105,14 +98,11 @@ export const deleteGoal = async (id: string): Promise<boolean> => {
 
 export const addContribution = async (goalId: string, amount: number): Promise<Goal | null> => {
     try {
-        const userId = await getAuthUserId();
-
         // Get current goal
         const { data: goal, error: fetchErr } = await supabase
             .from('goals')
             .select('*')
             .eq('id', goalId)
-            .eq('user_id', userId)
             .single();
 
         if (fetchErr || !goal) throw fetchErr || new Error('Meta não encontrada.');
@@ -133,7 +123,6 @@ export const addContribution = async (goalId: string, amount: number): Promise<G
             .from('goals')
             .update(updates)
             .eq('id', goalId)
-            .eq('user_id', userId)
             .select()
             .single();
 
@@ -145,7 +134,6 @@ export const addContribution = async (goalId: string, amount: number): Promise<G
             await supabase
                 .from('goals')
                 .update({ status: 'active' })
-                .eq('user_id', userId)
                 .eq('order_index', nextIndex)
                 .eq('status', 'locked');
         }

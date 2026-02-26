@@ -2,11 +2,9 @@ import { supabase, getAuthUserId } from '../lib/supabase';
 
 export const fetchDebts = async () => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('debts')
             .select(`*, debt_payments (*)`)
-            .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -52,12 +50,10 @@ export const createDebt = async (debtData: any, payments: any[] = []) => {
 
 export const updateDebt = async (id: string, updates: any) => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('debts')
             .update(updates)
             .eq('id', id)
-            .eq('user_id', userId)
             .select();
 
         if (error) throw error;
@@ -70,12 +66,10 @@ export const updateDebt = async (id: string, updates: any) => {
 
 export const deleteDebt = async (id: string) => {
     try {
-        const userId = await getAuthUserId();
         const { error } = await supabase
             .from('debts')
             .delete()
-            .eq('id', id)
-            .eq('user_id', userId);
+            .eq('id', id);
 
         if (error) throw error;
         return true;

@@ -2,11 +2,9 @@ import { supabase, getAuthUserId } from '../lib/supabase';
 
 export const fetchInstallments = async () => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('installments')
             .select(`*, installment_fractions (*)`)
-            .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -60,12 +58,10 @@ export const createInstallment = async (installmentData: any, fractionsCount: nu
 
 export const updateInstallmentStatus = async (id: string, newStatus: string) => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('installments')
             .update({ status: newStatus })
             .eq('id', id)
-            .eq('user_id', userId)
             .select();
 
         if (error) throw error;
@@ -94,12 +90,10 @@ export const updateFractionStatus = async (fractionId: string, newStatus: string
 
 export const updateInstallment = async (id: string, updates: any) => {
     try {
-        const userId = await getAuthUserId();
         const { data, error } = await supabase
             .from('installments')
             .update(updates)
             .eq('id', id)
-            .eq('user_id', userId)
             .select();
 
         if (error) throw error;
@@ -112,12 +106,10 @@ export const updateInstallment = async (id: string, updates: any) => {
 
 export const deleteInstallment = async (id: string) => {
     try {
-        const userId = await getAuthUserId();
         const { error } = await supabase
             .from('installments')
             .delete()
-            .eq('id', id)
-            .eq('user_id', userId);
+            .eq('id', id);
 
         if (error) throw error;
         return true;

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, CreditCard, Ban, ShieldCheck, TrendingUp, TrendingDown, Play, X, SlidersHorizontal, Trash2, ArrowRightLeft, Edit } from 'lucide-react';
 import { fetchCards, createCard, updateCard, deleteCard } from '../services/cardsService';
-import { supabase, getAuthUserId } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { useModals } from '../contexts/ModalContext';
 import CardModal from './CardModal';
 
@@ -533,13 +533,10 @@ export default function CardsPage() {
         let allInstallments: any[] = [];
 
         try {
-            const userId = await getAuthUserId();
-
             // Fetch transactions with card column
             const { data: txData } = await supabase
                 .from('transactions')
                 .select('*')
-                .eq('user_id', userId)
                 .order('date', { ascending: false })
                 .limit(100);
             allTransactions = txData || [];
@@ -547,15 +544,13 @@ export default function CardsPage() {
             // Fetch subscriptions with card column
             const { data: subData } = await supabase
                 .from('subscriptions')
-                .select('*')
-                .eq('user_id', userId);
+                .select('*');
             allSubscriptions = subData || [];
 
             // Fetch installments with card column
             const { data: instData } = await supabase
                 .from('installments')
-                .select('*')
-                .eq('user_id', userId);
+                .select('*');
             allInstallments = instData || [];
         } catch (err) {
             console.error('Error fetching linked activity:', err);
