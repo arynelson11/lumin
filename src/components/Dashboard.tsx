@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { LayoutDashboard, ArrowRightLeft, CreditCard, PieChart, Calendar, TrendingUp, ScrollText, Settings, LogOut, Play, Target } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, CreditCard, PieChart, Calendar, Layers, TrendingUp, ScrollText, Settings, LogOut, Target } from 'lucide-react';
 import Header from './Header';
 import OverviewCard from './OverviewCard';
 import SummaryGrid from './SummaryGrid';
@@ -25,6 +25,7 @@ export default function Dashboard() {
     });
     const [globalSearch, setGlobalSearch] = useState('');
     const { openNewTransaction } = useModals();
+    const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
     // Persist active tab
     useEffect(() => {
@@ -122,27 +123,84 @@ export default function Dashboard() {
             </main>
 
             {/* Mobile Bottom Navigation */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-md border-t border-border z-30 px-6 py-3 flex justify-between items-center rounded-t-2xl">
-                <MobileNavItem icon={<LayoutDashboard size={20} />} active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-                <MobileNavItem icon={<ArrowRightLeft size={20} />} active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} />
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-border z-30 px-4 py-2 flex justify-around items-center rounded-t-2xl safe-area-bottom">
+                <MobileNavItem icon={<LayoutDashboard size={20} />} label="Início" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
+                <MobileNavItem icon={<ArrowRightLeft size={20} />} label="Transações" active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} />
 
-                <div className="relative -top-6">
-                    <button onClick={openNewTransaction} className="w-14 h-14 rounded-full bg-accent text-background flex items-center justify-center shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                <div className="relative -top-5">
+                    <button onClick={openNewTransaction} className="w-14 h-14 rounded-full bg-accent text-background flex items-center justify-center shadow-lg shadow-accent/30 hover:scale-105 active:scale-90 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
                     </button>
                 </div>
 
-                <MobileNavItem icon={<CreditCard size={20} />} active={activeTab === 'cards'} onClick={() => setActiveTab('cards')} />
-                <MobileNavItem icon={<Play size={20} />} active={activeTab === 'subscriptions'} onClick={() => setActiveTab('subscriptions')} />
+                <MobileNavItem icon={<CreditCard size={20} />} label="Cartões" active={activeTab === 'cards'} onClick={() => setActiveTab('cards')} />
+                <MobileNavItem
+                    icon={<MoreMenuIcon />}
+                    label="Mais"
+                    active={moreMenuOpen}
+                    onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                />
             </div>
+
+            {/* More Menu Overlay */}
+            {moreMenuOpen && (
+                <div className="md:hidden fixed inset-0 z-40" onClick={() => setMoreMenuOpen(false)}>
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                    <div
+                        className="absolute bottom-0 left-0 right-0 bg-surface border-t border-border rounded-t-3xl p-6 pb-8 animate-slide-up"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="w-10 h-1 bg-border rounded-full mx-auto mb-6" />
+                        <div className="grid grid-cols-3 gap-4 mb-6">
+                            <MoreMenuItem icon={<Layers size={22} />} label="Parcelas" active={activeTab === 'installments'} onClick={() => { setActiveTab('installments'); setMoreMenuOpen(false); }} />
+                            <MoreMenuItem icon={<PieChart size={22} />} label="Assinaturas" active={activeTab === 'subscriptions'} onClick={() => { setActiveTab('subscriptions'); setMoreMenuOpen(false); }} />
+                            <MoreMenuItem icon={<Calendar size={22} />} label="Planejamento" active={activeTab === 'planner'} onClick={() => { setActiveTab('planner'); setMoreMenuOpen(false); }} />
+                            <MoreMenuItem icon={<ScrollText size={22} />} label="Dívidas" active={activeTab === 'debts'} onClick={() => { setActiveTab('debts'); setMoreMenuOpen(false); }} />
+                            <MoreMenuItem icon={<TrendingUp size={22} />} label="Investimentos" active={activeTab === 'investments'} onClick={() => { setActiveTab('investments'); setMoreMenuOpen(false); }} />
+                            <MoreMenuItem icon={<Target size={22} />} label="Metas" active={activeTab === 'goals'} onClick={() => { setActiveTab('goals'); setMoreMenuOpen(false); }} />
+                        </div>
+                        <div className="border-t border-border pt-4 space-y-1">
+                            <button onClick={() => { setActiveTab('profile'); setMoreMenuOpen(false); }} className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-all">
+                                <Settings size={20} />
+                                <span className="font-medium">Configurações</span>
+                            </button>
+                            <button onClick={() => { setMoreMenuOpen(false); handleLogout(); }} className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all">
+                                <LogOut size={20} />
+                                <span className="font-medium">Sair</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
-function MobileNavItem({ icon, active = false, onClick }: { icon: React.ReactNode; active?: boolean; onClick?: () => void }) {
+function MoreMenuIcon() {
     return (
-        <button onClick={onClick} className={`p-2 transition-colors ${active ? 'text-accent' : 'text-text-secondary hover:text-text-primary'}`}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <circle cx="4" cy="10" r="1.5" fill="currentColor" /><circle cx="10" cy="10" r="1.5" fill="currentColor" /><circle cx="16" cy="10" r="1.5" fill="currentColor" />
+        </svg>
+    );
+}
+
+function MoreMenuItem({ icon, label, active = false, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick?: () => void }) {
+    return (
+        <button
+            onClick={onClick}
+            className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all active:scale-95 ${active ? 'bg-accent/15 text-accent' : 'bg-surface-hover/50 text-text-secondary hover:text-text-primary'}`}
+        >
             {icon}
+            <span className="text-xs font-medium">{label}</span>
+        </button>
+    );
+}
+
+function MobileNavItem({ icon, label, active = false, onClick }: { icon: React.ReactNode; label?: string; active?: boolean; onClick?: () => void }) {
+    return (
+        <button onClick={onClick} className={`flex flex-col items-center gap-1 p-1 min-w-[48px] transition-colors ${active ? 'text-accent' : 'text-text-secondary'}`}>
+            {icon}
+            {label && <span className="text-[10px] font-medium">{label}</span>}
         </button>
     );
 }
