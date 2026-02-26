@@ -104,9 +104,9 @@ function SubscriptionsHeader({ searchQuery, setSearchQuery, activePeriod, setAct
                     ))}
                 </div>
 
-                <button onClick={onNewSubscription} className="hidden md:flex items-center justify-center space-x-2 bg-accent hover:bg-[#C2E502] text-background font-bold px-4 py-2 rounded-xl transition-all shadow-lg hover:shadow-accent/20 active:scale-95 whitespace-nowrap">
+                <button onClick={onNewSubscription} className="flex items-center justify-center space-x-2 bg-accent hover:bg-[#C2E502] text-background font-bold px-3 md:px-4 py-2 rounded-xl transition-all shadow-lg hover:shadow-accent/20 active:scale-95 whitespace-nowrap">
                     <Plus size={18} />
-                    <span>Nova Assinatura</span>
+                    <span className="hidden sm:inline">Nova Assinatura</span>
                 </button>
             </div>
         </motion.header>
