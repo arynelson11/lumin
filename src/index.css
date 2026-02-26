@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@theme {
+  --color-accent: #D7FE03;
+  --color-background: #0A0A0A;
+  --color-surface: #141414;
+  --color-surface-hover: #1F1F1F;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A3A3A3;
+  --color-border: #262626;
+  --color-success: #22C55E;
+  --color-danger: #EF4444;
+  --color-error: #EF4444;
+  --color-warning: #F59E0B;
+
+  --font-urbanist: "Urbanist", sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    font-family: var(--font-urbanist);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Light Mode Overrides */
+  :root.light {
+    --color-accent: #6D28D9;
+    --color-background: #F8F9FA;
+    --color-surface: #FFFFFF;
+    --color-surface-hover: #F1F3F5;
+    --color-text-primary: #1A1A2E;
+    --color-text-secondary: #6B7280;
+    --color-border: #E5E7EB;
+    --color-success: #16A34A;
+    --color-danger: #DC2626;
+    --color-error: #DC2626;
+    --color-warning: #D97706;
+  }
+}
