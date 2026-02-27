@@ -103,7 +103,7 @@ BEGIN
       AND EXTRACT(MONTH FROM date) = p_month
       AND EXTRACT(YEAR FROM date) = p_year;
 
-    -- Obter dias sem gastos variáveis até o dia atual
+    -- Obter dias em que os gastos variáveis não ultrapassaram o benchmark diário
     WITH month_days AS (
         SELECT generate_series(
             make_date(p_year, p_month, 1),
@@ -111,8 +111,8 @@ BEGIN
             '1 day'::interval
         )::date AS d
     ),
-    spending_days AS (
-        SELECT DISTINCT date::date as d
+    daily_spending AS (
+        SELECT date::date as d, SUM(amount) as total_gasto
         FROM transactions
         WHERE user_id = ANY(v_accessible_users)
           AND type = 'expense'
@@ -120,11 +120,12 @@ BEGIN
           AND EXTRACT(MONTH FROM date) = p_month
           AND EXTRACT(YEAR FROM date) = p_year
           AND EXTRACT(DAY FROM date) <= p_current_day
+        GROUP BY date::date
     )
     SELECT COUNT(*) INTO v_days_without_spending
     FROM month_days md
-    LEFT JOIN spending_days sd ON md.d = sd.d
-    WHERE sd.d IS NULL;
+    LEFT JOIN daily_spending ds ON md.d = ds.d
+    WHERE COALESCE(ds.total_gasto, 0) <= v_budget.daily_benchmark;
 
     -- Obter os gastos reais agrupados por dia para o gráfico
     SELECT json_agg(json_build_object('day', d.day, 'value', COALESCE(s.daily_gasto, 0))) INTO v_daily_expenses

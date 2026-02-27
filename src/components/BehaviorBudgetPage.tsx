@@ -8,7 +8,6 @@ import {
     Activity,
     AlertCircle,
     CheckCircle2,
-    Flame,
     ArrowRight,
     ArrowLeft,
     Wallet,
@@ -425,13 +424,13 @@ export default function BehaviorBudgetPage() {
                                 transition={{ duration: 0.5, delay: 0.4 }}
                                 className="bg-surface border border-white/5 rounded-3xl p-6 shadow-sm h-full flex flex-col justify-center items-center text-center group"
                             >
-                                <div className="w-20 h-20 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                    <Flame size={40} className="group-hover:animate-pulse" />
+                                <div className="w-20 h-20 rounded-full bg-success/10 text-success flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                    <CheckCircle2 size={40} className="group-hover:animate-pulse" />
                                 </div>
                                 <h4 className="text-4xl font-extrabold text-text-primary mb-1">{summary.streak_days || 0}</h4>
-                                <p className="text-orange-500 font-bold mb-2 uppercase tracking-wide text-sm">Dias de Fogo</p>
+                                <p className="text-success font-bold mb-2 uppercase tracking-wide text-sm">Dias no Limite</p>
                                 <p className="text-xs text-text-secondary px-4">
-                                    Dias neste mês em que você não teve nenhum gasto variável.
+                                    Dias neste mês em que você não ultrapassou seu limite de gasto diário.
                                 </p>
                             </motion.div>
                         </div>
