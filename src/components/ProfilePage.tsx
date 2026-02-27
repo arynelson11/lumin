@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
     User, Camera, Lock, Mail, Bell, Palette, Shield,
-    ChevronRight, Check, X, Moon, Sun, LogOut, Save
+    ChevronRight, Check, X, Moon, Sun, LogOut, Save, MessageCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { fetchUserProfile, updateWhatsappNumber } from '../services/profileService';
 
 export default function ProfilePage() {
     // User data state
@@ -12,6 +13,7 @@ export default function ProfilePage() {
     const [email, setEmail] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
     const [avatarPreview, setAvatarPreview] = useState('');
+    const [whatsappNumber, setWhatsappNumber] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Password change
@@ -44,6 +46,12 @@ export default function ProfilePage() {
                 setEmail(user.email || '');
                 setAvatarUrl(user.user_metadata?.avatar_url || '');
                 setAvatarPreview(user.user_metadata?.avatar_url || '');
+
+                // Fetch whatsapp profile
+                const profile = await fetchUserProfile();
+                if (profile && profile.whatsapp_number) {
+                    setWhatsappNumber(profile.whatsapp_number);
+                }
             }
         };
         loadUser();
@@ -88,10 +96,11 @@ export default function ProfilePage() {
         reader.readAsDataURL(file);
     };
 
-    // Save profile
+    // Save profile and whatsapp
     const handleSaveProfile = async () => {
         setSaving(true);
         try {
+            // Update auth metadata
             const { error } = await supabase.auth.updateUser({
                 data: {
                     full_name: name,
@@ -100,6 +109,14 @@ export default function ProfilePage() {
             });
 
             if (error) throw error;
+
+            // Save WhatsApp profile explicitly
+            if (whatsappNumber) {
+                // simple mask clean up for saving to db if the user wrote dashes/spaces
+                const cleanedPhone = whatsappNumber.replace(/\D/g, '');
+                await updateWhatsappNumber(cleanedPhone);
+            }
+
             setAvatarUrl(avatarPreview);
             // Save avatar to localStorage for persistence and cross-component access
             if (avatarPreview) {
@@ -306,6 +323,23 @@ export default function ProfilePage() {
                                                     <Mail size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary/50" />
                                                 </div>
                                                 <p className="text-xs text-text-secondary mt-1.5">O email não pode ser alterado por aqui.</p>
+                                            </div>
+
+                                            <div className="pt-2 border-t border-white/5">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <MessageCircle size={18} className="text-[#25D366]" />
+                                                    <label className="block text-sm font-medium text-text-secondary">Integração WhatsApp (n8n)</label>
+                                                </div>
+                                                <p className="text-xs text-text-secondary mb-3">
+                                                    Adicione o código do país + DDD + número para o agente de IA te reconhecer enviando mensagens.
+                                                </p>
+                                                <input
+                                                    type="text"
+                                                    value={whatsappNumber}
+                                                    onChange={e => setWhatsappNumber(e.target.value)}
+                                                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                                                    placeholder="Ex: 5521999999999"
+                                                />
                                             </div>
 
                                             <button
