@@ -29,20 +29,24 @@ CREATE TABLE IF NOT EXISTS monthly_variable_budget (
 ALTER TABLE monthly_variable_budget ENABLE ROW LEVEL SECURITY;
 
 -- Politicas RLS para orçamentos variáveis
+DROP POLICY IF EXISTS "Usuários podem ver seus próprios orçamentos" ON monthly_variable_budget;
 CREATE POLICY "Usuários podem ver seus próprios orçamentos"
 ON monthly_variable_budget FOR SELECT
 USING (
     user_id = auth.uid()
 );
 
+DROP POLICY IF EXISTS "Usuários podem inserir seus próprios orçamentos" ON monthly_variable_budget;
 CREATE POLICY "Usuários podem inserir seus próprios orçamentos"
 ON monthly_variable_budget FOR INSERT
 WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Usuários podem atualizar seus próprios orçamentos" ON monthly_variable_budget;
 CREATE POLICY "Usuários podem atualizar seus próprios orçamentos"
 ON monthly_variable_budget FOR UPDATE
 USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Usuários podem deletar seus próprios orçamentos" ON monthly_variable_budget;
 CREATE POLICY "Usuários podem deletar seus próprios orçamentos"
 ON monthly_variable_budget FOR DELETE
 USING (user_id = auth.uid());
