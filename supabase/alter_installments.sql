@@ -27,6 +27,10 @@ EXCEPTION WHEN duplicate_column THEN NULL; END $$;
 DO $$ BEGIN
     ALTER TABLE installments ADD COLUMN fraction_value numeric NOT NULL DEFAULT 0;
 EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+-- Adicionando 'total_amount'
+DO $$ BEGIN
+    ALTER TABLE installments ADD COLUMN total_amount numeric NOT NULL DEFAULT 0;
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
 
 -- Adicionando 'next_due_date'
 DO $$ BEGIN
