@@ -28,16 +28,16 @@ export default function InstallmentsPage() {
         // Map database model to UI model
         const mapped = data.map((d: any) => ({
             id: d.id,
-            title: d.title,
-            category: d.category,
-            card: d.card,
+            title: d.title || 'Sem Título',
+            category: d.category || '',
+            card: d.card || '',
             totalAmount: Number(d.total_amount),
             currentFraction: Number(d.current_fraction),
             totalFractions: Number(d.total_fractions),
             fractionValue: Number(d.fraction_value),
             nextDueDate: new Date(d.next_due_date).toLocaleDateString('pt-BR'),
             nextDueDateRaw: d.next_due_date,
-            status: d.status,
+            status: d.status || 'active',
             fractions: (d.installment_fractions || []).map((f: any) => ({
                 id: f.id,
                 fraction: f.fraction_number,
