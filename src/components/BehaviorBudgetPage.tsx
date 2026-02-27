@@ -8,7 +8,12 @@ import {
     Activity,
     AlertCircle,
     CheckCircle2,
-    Flame
+    Flame,
+    ArrowRight,
+    ArrowLeft,
+    Wallet,
+    Home,
+    PiggyBank
 } from 'lucide-react';
 import {
     AreaChart,
@@ -26,16 +31,31 @@ export default function BehaviorBudgetPage() {
     const [summary, setSummary] = useState<BehaviorBudgetSummary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Config state
+    // Config state (Wizard)
     const [isConfiguring, setIsConfiguring] = useState(false);
-    const [budgetInput, setBudgetInput] = useState('');
+    const [wizardStep, setWizardStep] = useState(1);
+    const [income, setIncome] = useState('');
+    const [fixedCosts, setFixedCosts] = useState('');
+    const [investments, setInvestments] = useState('');
+    // For manual adjustment
     const [isSaving, setIsSaving] = useState(false);
     const [configError, setConfigError] = useState<string | null>(null);
+
+    // Calc functions
+    const calculatedVariableBudget = useMemo(() => {
+        const i = Number(income) || 0;
+        const f = Number(fixedCosts) || 0;
+        const inv = Number(investments) || 0;
+        return Math.max(0, i - f - inv);
+    }, [income, fixedCosts, investments]);
+
+    const calculatedDailyBudget = useMemo(() => {
+        return calculatedVariableBudget / 30;
+    }, [calculatedVariableBudget]);
 
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
-    const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long' });
 
     const loadData = async () => {
         setIsLoading(true);
@@ -52,13 +72,16 @@ export default function BehaviorBudgetPage() {
     }, []);
 
     const handleSaveBudget = async () => {
-        if (!budgetInput || isNaN(Number(budgetInput))) return;
+        const finalAmount = calculatedVariableBudget;
+
+        if (isNaN(finalAmount) || finalAmount < 0) return;
 
         setIsSaving(true);
         try {
             setConfigError(null);
-            await setVariableBudget(currentMonth, currentYear, Number(budgetInput));
+            await setVariableBudget(currentMonth, currentYear, finalAmount);
             setIsConfiguring(false);
+            setWizardStep(1); // reset wizard
             await loadData();
         } catch (error: any) {
             console.error("Erro ao salvar orçamento", error);
@@ -84,44 +107,165 @@ export default function BehaviorBudgetPage() {
         return (
             <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background h-full h-screen">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-surface border border-border p-8 rounded-3xl max-w-md w-full shadow-2xl"
+                    key={wizardStep}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="bg-surface border border-border p-8 rounded-3xl max-w-md w-full shadow-2xl relative"
                 >
-                    <div className="w-16 h-16 bg-accent/20 rounded-2xl flex items-center justify-center mb-6 text-accent mx-auto">
-                        <Target size={32} />
-                    </div>
-                    <h2 className="text-2xl font-bold text-center text-text-primary mb-2">Configure seu orçamento</h2>
-                    <p className="text-center text-text-secondary mb-8">
-                        Para a inteligência comportamental funcionar, defina quanto você pode gastar com estilo de vida (gastos variáveis) neste mês.
-                    </p>
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1">Qual seu limite variável para {monthName}?</label>
-                            <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-medium">R$</span>
-                                <input
-                                    type="number"
-                                    value={budgetInput}
-                                    onChange={(e) => setBudgetInput(e.target.value)}
-                                    placeholder="0.00"
-                                    className="w-full bg-background border border-border rounded-xl pl-12 pr-4 py-3 text-lg font-bold text-text-primary focus:outline-none focus:border-accent transition-colors"
-                                />
-                            </div>
-                        </div>
-                        {configError && (
-                            <div className="p-3 rounded-xl bg-error/10 border border-error/20 text-error text-sm font-medium">
-                                {configError}
-                            </div>
-                        )}
+                    {/* Botão de Voltar */}
+                    {wizardStep > 1 && (
                         <button
-                            onClick={handleSaveBudget}
-                            disabled={isSaving || !budgetInput}
-                            className="w-full bg-accent hover:bg-[#C2E502] text-background font-bold py-3 rounded-xl transition-all disabled:opacity-50 flex justify-center"
+                            onClick={() => setWizardStep(wizardStep - 1)}
+                            className="absolute top-6 left-6 text-text-secondary hover:text-text-primary transition-colors"
                         >
-                            {isSaving ? <div className="w-5 h-5 border-2 border-background border-t-transparent rounded-full animate-spin"></div> : 'Começar a economizar'}
+                            <ArrowLeft size={20} />
                         </button>
+                    )}
+
+                    {wizardStep === 1 && (
+                        <>
+                            <div className="w-16 h-16 bg-success/20 rounded-2xl flex items-center justify-center mb-6 text-success mx-auto">
+                                <Wallet size={32} />
+                            </div>
+                            <h2 className="text-2xl font-bold text-center text-text-primary mb-2">Qual sua Renda Mensal?</h2>
+                            <p className="text-center text-text-secondary mb-8">
+                                Insira o total líquido que você ganha por mês (Salário, freelas, etc).
+                            </p>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-medium">R$</span>
+                                        <input
+                                            type="number"
+                                            value={income}
+                                            onChange={(e) => setIncome(e.target.value)}
+                                            placeholder="5000.00"
+                                            className="w-full bg-background border border-border rounded-xl pl-12 pr-4 py-3 text-lg font-bold text-text-primary focus:outline-none focus:border-accent transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setWizardStep(2)}
+                                    disabled={!income || Number(income) <= 0}
+                                    className="w-full bg-accent hover:bg-[#C2E502] text-background font-bold py-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    Próximo Passo <ArrowRight size={18} />
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {wizardStep === 2 && (
+                        <>
+                            <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-6 text-blue-400 mx-auto">
+                                <Home size={32} />
+                            </div>
+                            <h2 className="text-2xl font-bold text-center text-text-primary mb-2">Suas Contas Fixas</h2>
+                            <p className="text-center text-text-secondary mb-8">
+                                Quanto você paga por mês de obrigações incontornáveis (Aluguel, luz, plano de saúde, assinaturas).
+                            </p>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-medium">R$</span>
+                                        <input
+                                            type="number"
+                                            value={fixedCosts}
+                                            onChange={(e) => setFixedCosts(e.target.value)}
+                                            placeholder="2500.00"
+                                            className="w-full bg-background border border-border rounded-xl pl-12 pr-4 py-3 text-lg font-bold text-text-primary focus:outline-none focus:border-accent transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setWizardStep(3)}
+                                    disabled={!fixedCosts}
+                                    className="w-full bg-accent hover:bg-[#C2E502] text-background font-bold py-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    Próximo Passo <ArrowRight size={18} />
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {wizardStep === 3 && (
+                        <>
+                            <div className="w-16 h-16 bg-purple-500/20 rounded-2xl flex items-center justify-center mb-6 text-purple-400 mx-auto">
+                                <PiggyBank size={32} />
+                            </div>
+                            <h2 className="text-2xl font-bold text-center text-text-primary mb-2">Investimentos & Poupança</h2>
+                            <p className="text-center text-text-secondary mb-8">
+                                Você quer garantir alguma quantia para o seu futuro todo mês antes de gastar?
+                            </p>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-medium">R$</span>
+                                        <input
+                                            type="number"
+                                            value={investments}
+                                            onChange={(e) => setInvestments(e.target.value)}
+                                            placeholder="500.00"
+                                            className="w-full bg-background border border-border rounded-xl pl-12 pr-4 py-3 text-lg font-bold text-text-primary focus:outline-none focus:border-accent transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setWizardStep(4)}
+                                    disabled={!investments && investments !== '0'}
+                                    className="w-full bg-accent hover:bg-[#C2E502] text-background font-bold py-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    Ver Resultado <ArrowRight size={18} />
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {wizardStep === 4 && (
+                        <>
+                            <div className="w-16 h-16 bg-accent/20 rounded-2xl flex items-center justify-center mb-6 text-accent mx-auto">
+                                <Target size={32} />
+                            </div>
+                            <h2 className="text-2xl font-bold text-center text-text-primary mb-2">Seu Alvo Mensal</h2>
+                            <p className="text-center text-text-secondary mb-6">
+                                Baseado na sua Renda - Contas Fixas - Investimentos, este é o seu limite para <strong>Gastos Livres (Variáveis)</strong>:
+                            </p>
+
+                            <div className="bg-background border border-border rounded-2xl p-6 mb-6">
+                                <p className="text-center text-text-secondary text-sm mb-1">Plafond Livre do Mês</p>
+                                <p className="text-center text-3xl font-bold text-accent mb-4">{formatCurrency(calculatedVariableBudget)}</p>
+
+                                <div className="h-px w-full bg-border mb-4"></div>
+
+                                <p className="text-center text-text-secondary text-sm mb-1">Seu Alvo Diário Ideal (~ {Math.round(calculatedVariableBudget / 30)}/dia)</p>
+                                <p className="text-center text-xl font-bold text-text-primary">{formatCurrency(calculatedDailyBudget)} <span className="text-text-secondary text-base font-normal">/dia</span></p>
+                            </div>
+
+                            {configError && (
+                                <div className="p-3 mb-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm font-medium">
+                                    {configError}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleSaveBudget}
+                                disabled={isSaving || calculatedVariableBudget < 0}
+                                className="w-full bg-accent hover:bg-[#C2E502] text-background font-bold py-3 rounded-xl transition-all disabled:opacity-50 flex justify-center items-center gap-2"
+                            >
+                                {isSaving ? <div className="w-5 h-5 border-2 border-background border-t-transparent rounded-full animate-spin"></div> : 'Começar a Economizar Agora'}
+                            </button>
+                        </>
+                    )}
+
+                    {/* Indicador de Passos */}
+                    <div className="flex justify-center gap-2 mt-8">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className={`h-1.5 rounded-full transition-all ${wizardStep === i ? 'w-6 bg-accent' : 'w-2 bg-border'}`} />
+                        ))}
                     </div>
                 </motion.div>
             </div>
@@ -144,7 +288,12 @@ export default function BehaviorBudgetPage() {
                 </div>
                 <button
                     onClick={() => {
-                        setBudgetInput(summary.total_variable_budget?.toString() || '');
+                        setWizardStep(4);
+                        if (summary?.total_variable_budget) {
+                            setIncome(summary.total_variable_budget.toString());
+                            setFixedCosts('0');
+                            setInvestments('0');
+                        }
                         setIsConfiguring(true);
                     }}
                     className="mt-4 md:mt-0 text-sm font-medium text-accent hover:text-[#C2E502] transition-colors flex items-center gap-2"
