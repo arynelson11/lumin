@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowUpRight, ShoppingCart, Share2, Download, Printer, Trash2 } from 'lucide-react';
-import { deleteTransaction } from '../services/transactionsService';
+import { deleteTransaction, formatDateLabel, formatDateTimeLabel } from '../services/transactionsService';
 
 export default function TransactionDrawer({ transaction, onClose }: { transaction: any; onClose: () => void }) {
     const [showReceipt, setShowReceipt] = useState(false);
@@ -13,20 +13,9 @@ export default function TransactionDrawer({ transaction, onClose }: { transactio
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', signDisplay: 'never' }).format(Math.abs(amount));
     };
 
-    const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = d.toLocaleDateString('pt-BR', { month: 'long' });
-        const capitalMonth = month.charAt(0).toUpperCase() + month.slice(1);
-        const year = d.getFullYear();
-        return `${day} de ${capitalMonth}, ${year}`;
-    };
+    const formatDate = (dateStr: string) => formatDateLabel(dateStr);
+    const formatDateTime = (dateStr: string) => formatDateTimeLabel(dateStr);
 
-    const formatDateTime = (dateStr: string) => {
-        const d = new Date(dateStr);
-        const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        return `${formatDate(dateStr)} às ${time}`;
-    };
 
     const handleDelete = async () => {
         setIsDeleting(true);

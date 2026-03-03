@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, Filter, Coffee, MonitorPlay, Zap, Car, ArrowUpRight, ArrowDownRight, Home, ShoppingCart, Tag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useModals } from '../contexts/ModalContext';
-import { fetchTransactions } from '../services/transactionsService';
+import { fetchTransactions, formatDateLabel } from '../services/transactionsService';
 
 export default function TransactionsPage({ initialSearchQuery = '' }: { initialSearchQuery?: string }) {
     const { openTransactionDetails } = useModals();
@@ -458,7 +458,7 @@ function TransactionList({ groups, onSelect }: { groups: any[], onSelect: (tx: a
                                         <div className="flex flex-wrap items-center mt-1 gap-1.5 md:gap-2 max-w-full text-xs text-text-secondary">
                                             <span className="truncate">{tx.category}</span>
                                             <span className="w-1 h-1 rounded-full bg-border shrink-0"></span>
-                                            <span className="shrink-0">{tx.date}</span>
+                                            <span className="shrink-0">{formatDateLabel(tx.date)}</span>
                                             <span className="w-1 h-1 rounded-full bg-border shrink-0"></span>
                                             <span className="truncate">{tx.method}</span>
                                         </div>

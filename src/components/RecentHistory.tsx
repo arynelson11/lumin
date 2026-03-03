@@ -2,7 +2,7 @@ import { ArrowUpRight, ArrowDownRight, Coffee, ShoppingBag, Zap, MonitorPlay } f
 import { useModals } from '../contexts/ModalContext';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { fetchTransactions } from '../services/transactionsService';
+import { fetchTransactions, formatDateLabel } from '../services/transactionsService';
 
 const getCategoryIcon = (category: string) => {
     const props = { size: 18, className: "text-text-primary" };
@@ -70,7 +70,7 @@ export default function RecentHistory({ onViewAll }: { onViewAll?: () => void })
 
                                 <div>
                                     <h4 className="font-semibold text-text-primary text-sm">{transaction.title}</h4>
-                                    <p className="text-xs text-text-secondary mt-0.5">{(() => { const d = new Date(transaction.date || new Date()); const day = String(d.getDate()).padStart(2, '0'); const month = d.toLocaleDateString('pt-BR', { month: 'long' }); return `${day} de ${month.charAt(0).toUpperCase() + month.slice(1)}, ${d.getFullYear()}`; })()}</p>
+                                    <p className="text-xs text-text-secondary mt-0.5">{formatDateLabel(transaction.date)}</p>
                                 </div>
                             </div>
 
