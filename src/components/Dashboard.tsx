@@ -7,6 +7,7 @@ import ChartCard from './ChartCard';
 import RecentHistory from './RecentHistory';
 import { useModals } from '../contexts/ModalContext';
 import { supabase, clearAuthCache } from '../lib/supabase';
+import { runMonthlyCycle } from '../services/monthlyCycleService';
 
 // Lazy-load heavy page components for faster initial load
 const TransactionsPage = lazy(() => import('./TransactionsPage'));
@@ -32,6 +33,11 @@ export default function Dashboard() {
     useEffect(() => {
         localStorage.setItem('lumin_activeTab', activeTab);
     }, [activeTab]);
+
+    // Run monthly cycle on first load (resets fixed expenses, generates incomes)
+    useEffect(() => {
+        runMonthlyCycle();
+    }, []);
 
     const handleSearch = (query: string) => {
         setGlobalSearch(query);
