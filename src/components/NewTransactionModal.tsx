@@ -20,6 +20,7 @@ export default function NewTransactionModal({
     const [category, setCategory] = useState('Alimentação');
     const [selectedDebtId, setSelectedDebtId] = useState('');
     const [title, setTitle] = useState('');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
     const [cardsData, setCardsData] = useState<any[]>([]);
@@ -33,6 +34,8 @@ export default function NewTransactionModal({
             setCategory('Alimentação');
             setSourceType('account');
             setBehaviorType('variable');
+            setTitle('');
+            setDate(new Date().toISOString().split('T')[0]);
             fetchCards().then(data => {
                 setCardsData(data);
                 if (data.length > 0) setSelectedCardId(data[0].id);
@@ -61,16 +64,15 @@ export default function NewTransactionModal({
             amount: type === 'expense' ? -parseFloat(amount.replace(',', '.')) || 0 : parseFloat(amount.replace(',', '.')) || 0,
             type,
             behavior_type: type === 'income' ? null : behaviorType,
-            status: 'completed'
-            // We omit the manual date to let Supabase use NOW(), but you could pass the user selected date here.
+            status: 'completed',
+            date: date,
         };
 
         try {
             await createTransaction(newTx);
             setIsSuccess(true);
 
-            // Dispatch the event so Dashboard/Transactions list knows to re-fetch
-            window.dispatchEvent(new CustomEvent('lumin:newTransaction', { detail: newTx }));
+            // emitDataChanged is called inside createTransaction already
 
             setTimeout(() => {
                 onClose();
@@ -196,7 +198,7 @@ export default function NewTransactionModal({
                                         <label className="text-sm font-medium text-text-secondary px-1">Data</label>
                                         <div className="relative">
                                             <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
-                                            <input type="date" className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3.5 text-text-primary appearance-none focus:outline-none focus:ring-1 focus:ring-accent" defaultValue={new Date().toISOString().split('T')[0]} />
+                                            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3.5 text-text-primary appearance-none focus:outline-none focus:ring-1 focus:ring-accent" />
                                         </div>
                                     </div>
                                 </div>

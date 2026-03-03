@@ -31,8 +31,8 @@ export default function RecentHistory({ onViewAll }: { onViewAll?: () => void })
         const handleNewTx = () => {
             loadTransactions();
         };
-        window.addEventListener('lumin:newTransaction', handleNewTx);
-        return () => window.removeEventListener('lumin:newTransaction', handleNewTx);
+        window.addEventListener('lumin:dataChanged', handleNewTx);
+        return () => window.removeEventListener('lumin:dataChanged', handleNewTx);
     }, []);
 
     return (
@@ -70,7 +70,7 @@ export default function RecentHistory({ onViewAll }: { onViewAll?: () => void })
 
                                 <div>
                                     <h4 className="font-semibold text-text-primary text-sm">{transaction.title}</h4>
-                                    <p className="text-xs text-text-secondary mt-0.5">{new Date(transaction.date || new Date()).toLocaleDateString()}</p>
+                                    <p className="text-xs text-text-secondary mt-0.5">{(() => { const d = new Date(transaction.date || new Date()); const day = String(d.getDate()).padStart(2, '0'); const month = d.toLocaleDateString('pt-BR', { month: 'long' }); return `${day} de ${month.charAt(0).toUpperCase() + month.slice(1)}, ${d.getFullYear()}`; })()}</p>
                                 </div>
                             </div>
 

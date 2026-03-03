@@ -213,8 +213,8 @@ export default function SummaryGrid({ onNavigate }: SummaryGridProps) {
         loadMetrics();
 
         const handleNewTx = () => loadMetrics();
-        window.addEventListener('lumin:newTransaction', handleNewTx);
-        return () => window.removeEventListener('lumin:newTransaction', handleNewTx);
+        window.addEventListener('lumin:dataChanged', handleNewTx);
+        return () => window.removeEventListener('lumin:dataChanged', handleNewTx);
     }, []);
 
     if (isLoading) {

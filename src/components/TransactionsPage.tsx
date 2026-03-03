@@ -36,8 +36,8 @@ export default function TransactionsPage({ initialSearchQuery = '' }: { initialS
             // Alternatively we could optimistic update, but reload is simpler for now
             loadTransactions();
         };
-        window.addEventListener('lumin:newTransaction', handleNewTx);
-        return () => window.removeEventListener('lumin:newTransaction', handleNewTx);
+        window.addEventListener('lumin:dataChanged', handleNewTx);
+        return () => window.removeEventListener('lumin:dataChanged', handleNewTx);
     }, []);
 
     const filteredGroups = groups.filter(group => {

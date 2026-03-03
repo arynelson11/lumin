@@ -40,8 +40,8 @@ export default function OverviewCard() {
         loadBalance();
 
         const handleNewTx = () => loadBalance();
-        window.addEventListener('lumin:newTransaction', handleNewTx);
-        return () => window.removeEventListener('lumin:newTransaction', handleNewTx);
+        window.addEventListener('lumin:dataChanged', handleNewTx);
+        return () => window.removeEventListener('lumin:dataChanged', handleNewTx);
     }, []);
 
     const trend = lastMonthBalance !== 0
