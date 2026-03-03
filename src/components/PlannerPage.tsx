@@ -48,6 +48,10 @@ export default function PlannerPage() {
 
     useEffect(() => {
         loadData();
+
+        const handleDataChanged = () => loadData();
+        window.addEventListener('lumin:dataChanged', handleDataChanged);
+        return () => window.removeEventListener('lumin:dataChanged', handleDataChanged);
     }, []);
 
     const loadData = async () => {
