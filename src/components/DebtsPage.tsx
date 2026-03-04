@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Landmark, Plus, TrendingDown, Clock, CheckCircle2, AlertCircle, X, History, FileText, ChevronRight } from 'lucide-react';
+import { Landmark, Plus, TrendingDown, Clock, CheckCircle2, AlertCircle, X, History, FileText, ChevronRight, Undo2 } from 'lucide-react';
 import { fetchDebts, createDebt, updateDebt } from '../services/debtsService';
+import { createTransaction, emitDataChanged } from '../services/transactionsService';
+import { supabase, getAuthUserId } from '../lib/supabase';
 import { useModals } from '../contexts/ModalContext';
 import DebtModal from './DebtModal';
 
@@ -235,8 +237,106 @@ function DebtCard({ debt, onClick }: { debt: DebtData, onClick: () => void }) {
     );
 }
 
-function DebtDrawer({ debt, onClose, onAction }: { debt: DebtData, onClose: () => void, onAction: (type: 'pay' | 'edit' | 'finish') => void }) {
+function DebtDrawer({ debt, onClose, onAction, onReload }: { debt: DebtData, onClose: () => void, onAction: (type: 'pay' | 'edit' | 'finish') => void, onReload: () => void }) {
     if (!debt) return null;
+
+    const [payingId, setPayingId] = useState<number | null>(null);
+    const [paidSuccess, setPaidSuccess] = useState<number | null>(null);
+
+    // Generate virtual fraction rows based on total / monthly
+    const totalFractions = debt.monthlyInstallment > 0 ? Math.ceil(debt.totalAmount / debt.monthlyInstallment) : 0;
+    const paidCount = debt.history.length;
+
+    const fractions = Array.from({ length: totalFractions }, (_, i) => {
+        const fractionNum = i + 1;
+        // Match against payment history (sorted by date ASC)
+        const sortedHistory = [...debt.history].sort((a, b) => a.date.localeCompare(b.date));
+        const payment = sortedHistory[i]; // i-th payment corresponds to i-th fraction
+        return {
+            number: fractionNum,
+            amount: debt.monthlyInstallment,
+            status: payment ? 'paid' as const : 'pending' as const,
+            paymentId: payment?.id || null,
+            paymentDate: payment?.date || null,
+        };
+    });
+
+    const pendingFractions = fractions.filter(f => f.status === 'pending');
+    const paidFractions = fractions.filter(f => f.status === 'paid');
+
+    const handlePayFraction = async (frac: typeof fractions[0]) => {
+        setPayingId(frac.number);
+        try {
+            const userId = await getAuthUserId();
+            const today = new Date().toISOString().split('T')[0];
+
+            // 1. Insert debt_payment
+            await supabase.from('debt_payments').insert([{
+                debt_id: debt.id,
+                user_id: userId,
+                date: today,
+                amount: frac.amount,
+            }]);
+
+            // 2. Update debt amounts
+            const newPaid = Math.min(debt.amountPaid + frac.amount, debt.totalAmount);
+            const newRemaining = Math.max(debt.remainingAmount - frac.amount, 0);
+            const newStatus = newRemaining <= 0 ? 'paid' : 'on_track';
+            await updateDebt(debt.id, {
+                amount_paid: newPaid,
+                remaining_amount: newRemaining,
+                status: newStatus,
+            });
+
+            // 3. Create transaction
+            await createTransaction({
+                title: `${debt.name} (${frac.number}/${totalFractions})`,
+                category: 'Pagamento de Dívida',
+                method: 'Conta Corrente',
+                amount: -frac.amount,
+                type: 'expense',
+                behavior_type: 'fixed',
+                status: 'completed',
+                date: today,
+            });
+
+            emitDataChanged();
+            setPaidSuccess(frac.number);
+            onReload();
+            setTimeout(() => setPaidSuccess(null), 2000);
+        } catch (err) {
+            console.error('Error paying debt fraction:', err);
+            alert('Erro ao pagar parcela.');
+        } finally {
+            setPayingId(null);
+        }
+    };
+
+    const handleUnpayFraction = async (frac: typeof fractions[0]) => {
+        if (!frac.paymentId) return;
+        setPayingId(frac.number);
+        try {
+            // 1. Delete debt_payment
+            await supabase.from('debt_payments').delete().eq('id', frac.paymentId);
+
+            // 2. Update debt amounts
+            const newPaid = Math.max(debt.amountPaid - frac.amount, 0);
+            const newRemaining = Math.min(debt.remainingAmount + frac.amount, debt.totalAmount);
+            await updateDebt(debt.id, {
+                amount_paid: newPaid,
+                remaining_amount: newRemaining,
+                status: 'on_track',
+            });
+
+            emitDataChanged();
+            onReload();
+        } catch (err) {
+            console.error('Error undoing debt payment:', err);
+            alert('Erro ao desfazer pagamento.');
+        } finally {
+            setPayingId(null);
+        }
+    };
 
     return (
         <AnimatePresence>
@@ -285,47 +385,98 @@ function DebtDrawer({ debt, onClose, onAction }: { debt: DebtData, onClose: () =
                             </div>
                         </div>
 
-                        {/* History */}
-                        <div>
-                            <h3 className="text-lg font-bold text-text-primary flex items-center mb-4">
-                                <History size={18} className="mr-2 text-text-secondary" />
-                                Histórico de Pagamentos
-                            </h3>
+                        {/* ── PARCELAS ── */}
+                        {totalFractions > 0 && (
+                            <div>
+                                <h3 className="text-lg font-bold text-text-primary flex items-center mb-4">
+                                    <History size={18} className="mr-2 text-text-secondary" />
+                                    Parcelas ({paidCount}/{totalFractions})
+                                </h3>
 
-                            {debt.history.length > 0 ? (
-                                <div className="space-y-3 relative before:absolute before:inset-y-0 before:left-[15px] before:w-[2px] before:bg-border pl-[36px]">
-                                    {debt.history.slice().reverse().map((h) => (
-                                        <div key={h.id} className="relative">
-                                            <div className="absolute left-[calc(-36px+11px)] top-1 w-2 h-2 rounded-full bg-white/20 border-2 border-surface z-10"></div>
-                                            <div className="flex items-center justify-between bg-surface-hover/50 p-3 rounded-xl border border-white/5">
-                                                <div>
-                                                    <p className="font-bold text-sm text-text-primary">{formatCurrency(h.amount)}</p>
-                                                    <p className="text-xs text-text-secondary">{formatDate(h.date)}</p>
-                                                </div>
-                                                <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-md">Pago</span>
-                                            </div>
+                                {/* Pending fractions */}
+                                {pendingFractions.length > 0 && (
+                                    <div className="mb-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Clock size={14} className="text-warning" />
+                                            <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Pendentes ({pendingFractions.length})</span>
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="bg-surface border border-border rounded-xl p-8 text-center">
-                                    <p className="text-sm text-text-secondary">Nenhum pagamento registrado ainda.</p>
-                                </div>
-                            )}
-                        </div>
+                                        <div className="space-y-2">
+                                            {pendingFractions.map(frac => (
+                                                <motion.div
+                                                    key={frac.number}
+                                                    initial={{ opacity: 0, y: 5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="bg-background border border-border rounded-2xl p-3.5 flex items-center justify-between gap-3"
+                                                >
+                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                        <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                                                            <Clock size={16} className="text-warning" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <h5 className="font-bold text-text-primary text-sm">Parcela {frac.number}/{totalFractions}</h5>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <span className="font-black text-text-primary text-sm">{formatCurrency(frac.amount)}</span>
+                                                        <AnimatePresence mode="wait">
+                                                            {paidSuccess === frac.number ? (
+                                                                <motion.div key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center">
+                                                                    <CheckCircle2 size={16} className="text-success" />
+                                                                </motion.div>
+                                                            ) : (
+                                                                <motion.button key="pay" initial={{ scale: 0.9 }} animate={{ scale: 1 }} onClick={() => handlePayFraction(frac)} disabled={payingId === frac.number} className="bg-accent hover:bg-[#C2E502] text-background font-bold px-3 py-1.5 rounded-lg transition-all shadow-lg shadow-accent/20 active:scale-95 text-xs disabled:opacity-50">
+                                                                    {payingId === frac.number ? '...' : 'Pagar'}
+                                                                </motion.button>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Paid fractions with undo */}
+                                {paidFractions.length > 0 && (
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <CheckCircle2 size={14} className="text-success" />
+                                            <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Pagas ({paidFractions.length})</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {paidFractions.map(frac => (
+                                                <div key={frac.number} className="bg-background/50 border border-border/50 rounded-2xl p-3.5 flex items-center justify-between gap-3 opacity-70">
+                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                        <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                                                            <CheckCircle2 size={16} className="text-success" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <h5 className="font-bold text-text-primary text-sm">Parcela {frac.number}/{totalFractions}</h5>
+                                                            <span className="text-xs text-text-secondary">{frac.paymentDate ? formatDate(frac.paymentDate) : ''}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <span className="font-bold text-text-secondary text-sm line-through">{formatCurrency(frac.amount)}</span>
+                                                        <button
+                                                            onClick={() => handleUnpayFraction(frac)}
+                                                            disabled={payingId === frac.number}
+                                                            className="p-1.5 rounded-lg hover:bg-surface-hover border border-border text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+                                                            title="Desfazer pagamento"
+                                                        >
+                                                            <Undo2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Actions Footer */}
                     <div className="p-6 border-t border-white/5 bg-background shadow-[0_-20px_40px_-20px_rgba(0,0,0,0.5)] z-10 sticky bottom-0 space-y-3">
-                        {debt.status !== 'paid' && (
-                            <button
-                                onClick={() => onAction('pay')}
-                                className="w-full bg-accent hover:bg-[#C2E502] text-background py-3.5 rounded-xl transition-all font-bold flex items-center justify-center space-x-2 shadow-lg shadow-accent/20"
-                            >
-                                <CheckCircle2 size={18} />
-                                <span>Registrar Pagamento Manual</span>
-                            </button>
-                        )}
                         <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={() => onAction('edit')}
@@ -360,6 +511,10 @@ export default function DebtsPage() {
 
     useEffect(() => {
         loadDebts();
+
+        const handleDataChanged = () => loadDebts();
+        window.addEventListener('lumin:dataChanged', handleDataChanged);
+        return () => window.removeEventListener('lumin:dataChanged', handleDataChanged);
     }, []);
 
     const loadDebts = async () => {
@@ -552,6 +707,30 @@ export default function DebtsPage() {
                     debt={selectedDebt}
                     onClose={() => setIsDrawerOpen(false)}
                     onAction={handleAction}
+                    onReload={async () => {
+                        await loadDebts();
+                        // Also update selectedDebt with fresh data
+                        const freshDebts = await fetchDebts();
+                        const mapped = freshDebts.map((d: any) => ({
+                            id: d.id,
+                            name: d.name,
+                            institution: d.institution || '',
+                            type: (d.type || 'other') as DebtType,
+                            totalAmount: Number(d.total_amount) || 0,
+                            amountPaid: Number(d.amount_paid) || 0,
+                            remainingAmount: Number(d.remaining_amount) || 0,
+                            monthlyInstallment: Number(d.monthly_installment) || 0,
+                            endDate: d.end_date || '',
+                            status: (d.status || 'on_track') as DebtStatus,
+                            history: (d.debt_payments || []).map((h: any) => ({
+                                id: h.id,
+                                date: h.date,
+                                amount: Number(h.amount)
+                            }))
+                        }));
+                        const fresh = mapped.find((d: DebtData) => d.id === selectedDebt.id);
+                        if (fresh) setSelectedDebt(fresh);
+                    }}
                 />
             )}
 
