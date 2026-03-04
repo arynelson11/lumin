@@ -85,7 +85,7 @@ export default function TransactionsPage({ initialSearchQuery = '' }: { initialS
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-background relative">
             <TransactionsHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} activePeriod={activePeriod} setActivePeriod={setActivePeriod} />
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:px-10 pb-20 scroll-smooth">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 lg:px-10 pb-24 lg:pb-8 scroll-smooth">
                 <div className="max-w-7xl mx-auto space-y-6">
                     {isLoading ? (
                         <div className="flex justify-center items-center py-20">

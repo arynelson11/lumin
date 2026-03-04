@@ -200,7 +200,7 @@ export default function ProfilePage() {
                 <p className="text-text-secondary text-sm mt-1">Gerencie seu perfil e preferências.</p>
             </motion.div>
 
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:px-10 pb-20 scroll-smooth">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 lg:px-10 pb-24 lg:pb-8 scroll-smooth">
                 <div className="max-w-4xl mx-auto">
                     {/* Message toast */}
                     {message && (

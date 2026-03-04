@@ -35,6 +35,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;
+    /* Prevent rubber-banding / overscroll on iOS */
+    overscroll-behavior: none;
   }
 
   /* Light Mode Overrides */
@@ -53,7 +55,44 @@
   }
 }
 
-/* Mobile navigation animations */
+/* ========= SCROLL PERFORMANCE ========= */
+
+/* GPU-accelerated scroll containers */
+.overflow-y-auto,
+.overflow-x-auto,
+[class*="overflow-y-scroll"],
+[class*="overflow-x-scroll"] {
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+  transform: translateZ(0);
+}
+
+/* Reduce paint cost by promoting scroll content to own layer */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Hide scrollbar utility (explicit class) */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ========= MOBILE & TABLET ANIMATIONS ========= */
+
 @keyframes slide-up {
   from { transform: translateY(100%); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
@@ -65,4 +104,14 @@
 
 .safe-area-bottom {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* ========= TABLET-SPECIFIC FIXES ========= */
+
+/* iPad portrait (768-1024px) — ensure content is not cramped */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Ensure grids don't become too dense on tablet */
+  .grid-cols-1.md\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
 }
