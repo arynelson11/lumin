@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, ArrowDownRight, ArrowUpRight, Tag, CreditCard, Building2, CheckCircle2, Receipt, Clock } from 'lucide-react';
-import { createTransaction } from '../services/transactionsService';
+import { X, Calendar, ArrowDownRight, ArrowUpRight, Tag, CreditCard, Building2, CheckCircle2, Receipt, Clock, Undo2, Layers } from 'lucide-react';
+import { createTransaction, emitDataChanged } from '../services/transactionsService';
 import { fetchCards } from '../services/cardsService';
 import { fetchDebts } from '../services/debtsService';
 import { fetchFixedExpenses, updateFixedExpense } from '../services/plannerService';
-import { emitDataChanged } from '../services/transactionsService';
+import { fetchInstallments, updateFractionStatus } from '../services/installmentsService';
 
 export default function NewTransactionModal({
     isOpen,
@@ -31,6 +31,7 @@ export default function NewTransactionModal({
 
     // Fixed expenses state
     const [fixedExpenses, setFixedExpenses] = useState<any[]>([]);
+    const [installmentsData, setInstallmentsData] = useState<any[]>([]);
     const [loadingFixed, setLoadingFixed] = useState(false);
     const [payingId, setPayingId] = useState<string | null>(null);
     const [paidSuccess, setPaidSuccess] = useState<string | null>(null);
@@ -58,8 +59,12 @@ export default function NewTransactionModal({
 
     const loadFixedExpenses = async () => {
         setLoadingFixed(true);
-        const data = await fetchFixedExpenses();
-        setFixedExpenses(data);
+        const [expData, instData] = await Promise.all([
+            fetchFixedExpenses(),
+            fetchInstallments()
+        ]);
+        setFixedExpenses(expData);
+        setInstallmentsData(instData);
         setLoadingFixed(false);
     };
 
@@ -138,6 +143,66 @@ export default function NewTransactionModal({
 
     const pendingExpenses = fixedExpenses.filter((e: any) => e.status === 'pending');
     const paidExpenses = fixedExpenses.filter((e: any) => e.status === 'paid');
+
+    // Build flat list of current-month fractions from all installments
+    const currentFractions = installmentsData.flatMap((inst: any) => {
+        const fractions = inst.installment_fractions || [];
+        return fractions
+            .sort((a: any, b: any) => a.fraction_number - b.fraction_number)
+            .map((f: any) => ({
+                ...f,
+                installmentName: inst.name || inst.title,
+                installmentCard: inst.card,
+                totalFractions: inst.total_fractions,
+            }));
+    });
+
+    const pendingFractions = currentFractions.filter((f: any) => f.status !== 'paid');
+    const paidFractions = currentFractions.filter((f: any) => f.status === 'paid');
+
+    const handlePayFraction = async (fraction: any) => {
+        setPayingId(fraction.id);
+        try {
+            // 1. Mark fraction as paid
+            await updateFractionStatus(fraction.id, 'paid');
+
+            // 2. Create a transaction
+            await createTransaction({
+                title: `${fraction.installmentName} (${fraction.fraction_number}/${fraction.totalFractions})`,
+                category: 'Parcela',
+                method: fraction.installmentCard || 'Cartão de Crédito',
+                amount: -Number(fraction.amount),
+                type: 'expense',
+                behavior_type: 'fixed',
+                status: 'completed',
+                date: new Date().toISOString().split('T')[0],
+            });
+
+            emitDataChanged();
+            setPaidSuccess(fraction.id);
+            await loadFixedExpenses();
+            setTimeout(() => setPaidSuccess(null), 2000);
+        } catch (err) {
+            console.error(err);
+            alert('Erro ao pagar parcela.');
+        } finally {
+            setPayingId(null);
+        }
+    };
+
+    const handleUnpayFraction = async (fraction: any) => {
+        setPayingId(fraction.id);
+        try {
+            await updateFractionStatus(fraction.id, 'pending');
+            emitDataChanged();
+            await loadFixedExpenses();
+        } catch (err) {
+            console.error(err);
+            alert('Erro ao desfazer pagamento.');
+        } finally {
+            setPayingId(null);
+        }
+    };
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -433,129 +498,241 @@ export default function NewTransactionModal({
                                     </div>
                                 </>
                             ) : (
-                                /* ===== FIXED EXPENSES TAB ===== */
+                                /* ===== CONTAS FIXAS + PARCELAS TAB ===== */
                                 <div className="flex-1 overflow-y-auto pr-2 -mr-2">
                                     {loadingFixed ? (
                                         <div className="flex items-center justify-center py-12">
                                             <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                                         </div>
-                                    ) : fixedExpenses.length === 0 ? (
+                                    ) : (fixedExpenses.length === 0 && installmentsData.length === 0) ? (
                                         <div className="text-center py-12">
                                             <Receipt size={48} className="text-border mx-auto mb-4" />
-                                            <h4 className="text-text-primary font-bold text-lg">Nenhuma conta fixa cadastrada</h4>
-                                            <p className="text-text-secondary text-sm mt-2">Adicione contas fixas no Planejamento para pagá-las aqui.</p>
+                                            <h4 className="text-text-primary font-bold text-lg">Nenhuma conta cadastrada</h4>
+                                            <p className="text-text-secondary text-sm mt-2">Adicione contas fixas no Planejamento ou parcelas em Parcelamentos.</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-6">
-                                            {/* Pending section */}
-                                            {pendingExpenses.length > 0 && (
+                                        <div className="space-y-8">
+
+                                            {/* ── CONTAS FIXAS ── */}
+                                            {fixedExpenses.length > 0 && (
                                                 <div>
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <Clock size={16} className="text-warning" />
-                                                        <h4 className="text-sm font-bold text-text-secondary uppercase tracking-wider">Pendentes ({pendingExpenses.length})</h4>
+                                                    <div className="flex items-center gap-2 mb-4">
+                                                        <Receipt size={18} className="text-accent" />
+                                                        <h4 className="text-base font-bold text-text-primary">Contas Fixas</h4>
                                                     </div>
-                                                    <div className="space-y-3">
-                                                        {pendingExpenses.map((expense: any) => (
-                                                            <motion.div
-                                                                key={expense.id}
-                                                                initial={{ opacity: 0, y: 10 }}
-                                                                animate={{ opacity: 1, y: 0 }}
-                                                                className="bg-background border border-border rounded-2xl p-4 flex items-center justify-between gap-4"
-                                                            >
-                                                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                                    <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
-                                                                        <Clock size={18} className="text-warning" />
-                                                                    </div>
-                                                                    <div className="min-w-0">
-                                                                        <h5 className="font-bold text-text-primary truncate">{expense.name}</h5>
-                                                                        <div className="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
-                                                                            <span>{expense.category}</span>
-                                                                            <span>•</span>
-                                                                            <span>Venc. dia {expense.due_date}</span>
+
+                                                    {/* Pending fixed expenses */}
+                                                    {pendingExpenses.length > 0 && (
+                                                        <div className="mb-4">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <Clock size={14} className="text-warning" />
+                                                                <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Pendentes ({pendingExpenses.length})</span>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                {pendingExpenses.map((expense: any) => (
+                                                                    <motion.div
+                                                                        key={expense.id}
+                                                                        initial={{ opacity: 0, y: 10 }}
+                                                                        animate={{ opacity: 1, y: 0 }}
+                                                                        className="bg-background border border-border rounded-2xl p-4 flex items-center justify-between gap-3"
+                                                                    >
+                                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                            <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
+                                                                                <Clock size={18} className="text-warning" />
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <h5 className="font-bold text-text-primary truncate text-sm">{expense.name}</h5>
+                                                                                <div className="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
+                                                                                    <span>{expense.category}</span>
+                                                                                    <span>•</span>
+                                                                                    <span>Venc. dia {expense.due_date}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 shrink-0">
+                                                                            <span className="font-black text-text-primary">
+                                                                                {formatCurrency(Number(expense.value))}
+                                                                            </span>
+                                                                            <AnimatePresence mode="wait">
+                                                                                {paidSuccess === expense.id ? (
+                                                                                    <motion.div key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="w-9 h-9 rounded-xl bg-success/20 flex items-center justify-center">
+                                                                                        <CheckCircle2 size={18} className="text-success" />
+                                                                                    </motion.div>
+                                                                                ) : (
+                                                                                    <motion.button key="pay" initial={{ scale: 0.9 }} animate={{ scale: 1 }} onClick={() => handlePayFixed(expense)} disabled={payingId === expense.id} className="bg-accent hover:bg-[#C2E502] text-background font-bold px-3 py-2 rounded-xl transition-all shadow-lg shadow-accent/20 active:scale-95 text-sm disabled:opacity-50">
+                                                                                        {payingId === expense.id ? '...' : 'Pagar'}
+                                                                                    </motion.button>
+                                                                                )}
+                                                                            </AnimatePresence>
+                                                                        </div>
+                                                                    </motion.div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Paid fixed expenses with undo */}
+                                                    {paidExpenses.length > 0 && (
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <CheckCircle2 size={14} className="text-success" />
+                                                                <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Pagas ({paidExpenses.length})</span>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                {paidExpenses.map((expense: any) => (
+                                                                    <div key={expense.id} className="bg-background/50 border border-border/50 rounded-2xl p-4 flex items-center justify-between gap-3 opacity-70">
+                                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                            <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+                                                                                <CheckCircle2 size={18} className="text-success" />
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <h5 className="font-bold text-text-primary truncate text-sm">{expense.name}</h5>
+                                                                                <span className="text-xs text-text-secondary">{expense.category}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 shrink-0">
+                                                                            <span className="font-bold text-text-secondary line-through">{formatCurrency(Number(expense.value))}</span>
+                                                                            <button
+                                                                                onClick={async () => {
+                                                                                    setPayingId(expense.id);
+                                                                                    try {
+                                                                                        await updateFixedExpense(expense.id, { status: 'pending' });
+                                                                                        emitDataChanged();
+                                                                                        await loadFixedExpenses();
+                                                                                    } finally { setPayingId(null); }
+                                                                                }}
+                                                                                disabled={payingId === expense.id}
+                                                                                className="p-2 rounded-xl hover:bg-surface-hover border border-border text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+                                                                                title="Desfazer pagamento"
+                                                                            >
+                                                                                <Undo2 size={16} />
+                                                                            </button>
                                                                         </div>
                                                                     </div>
-                                                                </div>
-                                                                <div className="flex items-center gap-3 shrink-0">
-                                                                    <span className="font-black text-text-primary text-lg">
-                                                                        {formatCurrency(Number(expense.value))}
-                                                                    </span>
-                                                                    <AnimatePresence mode="wait">
-                                                                        {paidSuccess === expense.id ? (
-                                                                            <motion.div
-                                                                                key="success"
-                                                                                initial={{ scale: 0 }}
-                                                                                animate={{ scale: 1 }}
-                                                                                exit={{ scale: 0 }}
-                                                                                className="w-10 h-10 rounded-xl bg-success/20 flex items-center justify-center"
-                                                                            >
-                                                                                <CheckCircle2 size={20} className="text-success" />
-                                                                            </motion.div>
-                                                                        ) : (
-                                                                            <motion.button
-                                                                                key="pay"
-                                                                                initial={{ scale: 0.9 }}
-                                                                                animate={{ scale: 1 }}
-                                                                                onClick={() => handlePayFixed(expense)}
-                                                                                disabled={payingId === expense.id}
-                                                                                className="bg-accent hover:bg-[#C2E502] text-background font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-accent/20 active:scale-95 text-sm disabled:opacity-50 whitespace-nowrap"
-                                                                            >
-                                                                                {payingId === expense.id ? '...' : 'Pagar'}
-                                                                            </motion.button>
-                                                                        )}
-                                                                    </AnimatePresence>
-                                                                </div>
-                                                            </motion.div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Paid section */}
-                                            {paidExpenses.length > 0 && (
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <CheckCircle2 size={16} className="text-success" />
-                                                        <h4 className="text-sm font-bold text-text-secondary uppercase tracking-wider">Pagas ({paidExpenses.length})</h4>
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        {paidExpenses.map((expense: any) => (
-                                                            <div
-                                                                key={expense.id}
-                                                                className="bg-background/50 border border-border/50 rounded-2xl p-4 flex items-center justify-between gap-4 opacity-60"
-                                                            >
-                                                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                                    <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-                                                                        <CheckCircle2 size={18} className="text-success" />
-                                                                    </div>
-                                                                    <div className="min-w-0">
-                                                                        <h5 className="font-bold text-text-primary truncate">{expense.name}</h5>
-                                                                        <span className="text-xs text-text-secondary">{expense.category}</span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex items-center gap-3 shrink-0">
-                                                                    <span className="font-black text-text-secondary text-lg line-through">
-                                                                        {formatCurrency(Number(expense.value))}
-                                                                    </span>
-                                                                    <span className="bg-success/10 text-success px-3 py-1.5 rounded-full text-xs font-bold">Pago</span>
-                                                                </div>
+                                                                ))}
                                                             </div>
-                                                        ))}
-                                                    </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
 
-                                            {/* Summary */}
-                                            <div className="bg-surface border border-border rounded-2xl p-4 mt-4">
+                                            {/* ── PARCELAS ── */}
+                                            {installmentsData.length > 0 && (
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-4">
+                                                        <Layers size={18} className="text-accent" />
+                                                        <h4 className="text-base font-bold text-text-primary">Parcelas</h4>
+                                                    </div>
+
+                                                    {/* Pending fractions */}
+                                                    {pendingFractions.length > 0 && (
+                                                        <div className="mb-4">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <Clock size={14} className="text-warning" />
+                                                                <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Pendentes ({pendingFractions.length})</span>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                {pendingFractions.map((frac: any) => (
+                                                                    <motion.div
+                                                                        key={frac.id}
+                                                                        initial={{ opacity: 0, y: 10 }}
+                                                                        animate={{ opacity: 1, y: 0 }}
+                                                                        className="bg-background border border-border rounded-2xl p-4 flex items-center justify-between gap-3"
+                                                                    >
+                                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${frac.status === 'late' ? 'bg-error/10' : 'bg-warning/10'}`}>
+                                                                                <Clock size={18} className={frac.status === 'late' ? 'text-error' : 'text-warning'} />
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <h5 className="font-bold text-text-primary truncate text-sm">{frac.installmentName}</h5>
+                                                                                <div className="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
+                                                                                    <span>Parcela {frac.fraction_number}/{frac.totalFractions}</span>
+                                                                                    <span>•</span>
+                                                                                    <span>{frac.date ? new Date(frac.date + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</span>
+                                                                                    {frac.status === 'late' && (
+                                                                                        <><span>•</span><span className="text-error font-bold">Atrasada</span></>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 shrink-0">
+                                                                            <span className="font-black text-text-primary">
+                                                                                {formatCurrency(Number(frac.amount))}
+                                                                            </span>
+                                                                            <AnimatePresence mode="wait">
+                                                                                {paidSuccess === frac.id ? (
+                                                                                    <motion.div key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="w-9 h-9 rounded-xl bg-success/20 flex items-center justify-center">
+                                                                                        <CheckCircle2 size={18} className="text-success" />
+                                                                                    </motion.div>
+                                                                                ) : (
+                                                                                    <motion.button key="pay" initial={{ scale: 0.9 }} animate={{ scale: 1 }} onClick={() => handlePayFraction(frac)} disabled={payingId === frac.id} className="bg-accent hover:bg-[#C2E502] text-background font-bold px-3 py-2 rounded-xl transition-all shadow-lg shadow-accent/20 active:scale-95 text-sm disabled:opacity-50">
+                                                                                        {payingId === frac.id ? '...' : 'Pagar'}
+                                                                                    </motion.button>
+                                                                                )}
+                                                                            </AnimatePresence>
+                                                                        </div>
+                                                                    </motion.div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Paid fractions with undo */}
+                                                    {paidFractions.length > 0 && (
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <CheckCircle2 size={14} className="text-success" />
+                                                                <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Pagas ({paidFractions.length})</span>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                {paidFractions.map((frac: any) => (
+                                                                    <div key={frac.id} className="bg-background/50 border border-border/50 rounded-2xl p-4 flex items-center justify-between gap-3 opacity-70">
+                                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                            <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+                                                                                <CheckCircle2 size={18} className="text-success" />
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <h5 className="font-bold text-text-primary truncate text-sm">{frac.installmentName}</h5>
+                                                                                <span className="text-xs text-text-secondary">Parcela {frac.fraction_number}/{frac.totalFractions}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 shrink-0">
+                                                                            <span className="font-bold text-text-secondary line-through">{formatCurrency(Number(frac.amount))}</span>
+                                                                            <button
+                                                                                onClick={() => handleUnpayFraction(frac)}
+                                                                                disabled={payingId === frac.id}
+                                                                                className="p-2 rounded-xl hover:bg-surface-hover border border-border text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+                                                                                title="Desfazer pagamento"
+                                                                            >
+                                                                                <Undo2 size={16} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* ── RESUMO TOTAL ── */}
+                                            <div className="bg-surface border border-border rounded-2xl p-4">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-text-secondary text-sm font-medium">Total pendente</span>
                                                     <span className="font-black text-text-primary text-xl">
-                                                        {formatCurrency(pendingExpenses.reduce((acc: number, e: any) => acc + Number(e.value), 0))}
+                                                        {formatCurrency(
+                                                            pendingExpenses.reduce((acc: number, e: any) => acc + Number(e.value), 0) +
+                                                            pendingFractions.reduce((acc: number, f: any) => acc + Number(f.amount), 0)
+                                                        )}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between items-center mt-2">
                                                     <span className="text-text-secondary text-sm font-medium">Total pago</span>
                                                     <span className="font-bold text-success">
-                                                        {formatCurrency(paidExpenses.reduce((acc: number, e: any) => acc + Number(e.value), 0))}
+                                                        {formatCurrency(
+                                                            paidExpenses.reduce((acc: number, e: any) => acc + Number(e.value), 0) +
+                                                            paidFractions.reduce((acc: number, f: any) => acc + Number(f.amount), 0)
+                                                        )}
                                                     </span>
                                                 </div>
                                             </div>
