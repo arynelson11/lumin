@@ -783,7 +783,7 @@ export default function CardsPage() {
                 onNewCard={handleNewCardRequest}
             />
 
-            <div className="flex-1 overflow-y-auto px-4 py-8 md:p-8 lg:px-10 pb-32 scroll-smooth">
+            <div className="flex-1 overflow-y-auto px-4 py-8 md:p-8 lg:px-10 pb-40 lg:pb-12 scroll-smooth">
                 <div className="max-w-7xl mx-auto flex flex-col gap-8">
                     {isLoading ? (
                         <div className="py-20 text-center flex flex-col items-center justify-center">

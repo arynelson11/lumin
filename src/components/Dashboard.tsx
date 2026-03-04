@@ -85,7 +85,7 @@ export default function Dashboard() {
                 {activeTab === 'overview' ? (
                     <>
                         <Header onSearch={handleSearch} onNavigateToProfile={() => setActiveTab('profile')} />
-                        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 lg:px-10 pb-24 lg:pb-20 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 lg:px-10 pb-40 lg:pb-12 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
                             <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
                                 <OverviewCard />
                                 <SummaryGrid onNavigate={(tab) => setActiveTab(tab)} />

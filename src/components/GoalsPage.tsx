@@ -464,7 +464,7 @@ export default function GoalsPage() {
             </motion.header>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-4 py-8 md:p-8 lg:px-10 pb-32 scroll-smooth">
+            <div className="flex-1 overflow-y-auto px-4 py-8 md:p-8 lg:px-10 pb-40 lg:pb-12 scroll-smooth">
                 <div className="max-w-6xl mx-auto">
                     {isLoading ? (
                         <div className="py-20 flex flex-col items-center justify-center">

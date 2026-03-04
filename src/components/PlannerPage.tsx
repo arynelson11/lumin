@@ -200,8 +200,8 @@ export default function PlannerPage() {
     };
 
     return (
-        <div className="flex-1 overflow-x-hidden relative flex flex-col items-center bg-background min-h-screen">
-            <div className="w-full max-w-[1200px] px-4 md:px-8 py-8 md:py-12 flex flex-col min-h-full pb-32">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col items-center bg-background scroll-smooth">
+            <div className="w-full max-w-[1200px] px-4 md:px-8 py-8 md:py-12 flex flex-col min-h-full pb-40 lg:pb-12">
 
                 {/* Header Sequence */}
                 <motion.div
