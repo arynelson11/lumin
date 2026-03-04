@@ -688,17 +688,26 @@ export default function InvestmentsPage() {
                     type: data.type,
                     current_value: data.currentValue,
                     invested_amount: data.investedAmount,
+                    yield_amount: (data.currentValue || 0) - (data.investedAmount || 0),
+                    yield_percentage: (data.investedAmount || 0) > 0 ? (((data.currentValue || 0) - (data.investedAmount || 0)) / (data.investedAmount || 0)) * 100 : 0,
                     quantity: data.quantity,
                     institution: data.institution,
                     start_date: data.startDate,
                 });
                 loadInvestments();
             } else {
+                const investedValue = data.investedAmount || 0;
+                const currentValue = data.currentValue || investedValue;
+                const yieldAmount = currentValue - investedValue;
+                const yieldPercentage = investedValue > 0 ? (yieldAmount / investedValue) * 100 : 0;
+
                 const payload = {
                     name: data.name || '',
                     type: data.type || 'other',
-                    current_value: data.currentValue || 0,
-                    invested_amount: data.investedAmount || 0,
+                    current_value: currentValue,
+                    invested_amount: investedValue,
+                    yield_amount: yieldAmount,
+                    yield_percentage: yieldPercentage,
                     quantity: data.quantity || null,
                     institution: data.institution || 'Não informada',
                     start_date: data.startDate || new Date().toISOString().split('T')[0]
