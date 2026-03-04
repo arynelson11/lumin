@@ -578,25 +578,25 @@ export default function InvestmentsPage() {
 
         const mapped = data.map((d: any) => {
             const current = Number(d.current_value);
-            const invested = Number(d.invested_value);
+            const invested = Number(d.invested_amount);
             const yieldAmt = current - invested;
             const yieldPct = invested > 0 ? (yieldAmt / invested) * 100 : 0;
 
             return {
                 id: d.id,
                 name: d.name,
-                institution: 'Instituição (Supabase)',
+                institution: d.institution || 'Instituição',
                 type: d.type as InvestmentType,
                 investedAmount: invested,
                 currentValue: current,
                 yieldAmount: yieldAmt,
                 yieldPercentage: yieldPct,
-                startDate: new Date(d.created_at).toISOString().split('T')[0],
+                startDate: d.start_date || new Date(d.created_at).toISOString().split('T')[0],
                 history: (d.investment_transactions || []).map((h: any) => ({
                     id: h.id,
-                    type: 'deposit',
-                    amount: Number(h.value),
-                    date: h.month
+                    type: h.type || 'deposit',
+                    amount: Number(h.amount),
+                    date: h.date
                 }))
             };
         });
@@ -632,17 +632,17 @@ export default function InvestmentsPage() {
                     try {
                         const newInvested = selectedInv.investedAmount + 1000;
                         const newCurrent = selectedInv.currentValue + 1000;
-                        await updateInvestment(selectedInv.id, { invested_value: newInvested, current_value: newCurrent });
+                        await updateInvestment(selectedInv.id, { invested_amount: newInvested, current_value: newCurrent });
 
-                        // Import from supabase lib directly here or rely on the service. We will just add the month to history
                         const { supabase } = await import('../lib/supabase');
-                        const currentMonth = new Date().toISOString().substring(0, 7) + '-01';
+                        const currentDay = new Date().toISOString().split('T')[0];
                         await supabase
                             .from('investment_transactions')
                             .insert([{
                                 investment_id: selectedInv.id,
-                                month: currentMonth,
-                                value: 1000
+                                date: currentDay,
+                                amount: 1000,
+                                type: 'deposit'
                             }]);
 
                         openGenericModal('Sucesso', 'Aporte registrado e saldo da conta atualizado com sucesso.', undefined, 'Fechar');
@@ -687,7 +687,7 @@ export default function InvestmentsPage() {
                     name: data.name,
                     type: data.type,
                     current_value: data.currentValue,
-                    invested_value: data.investedAmount,
+                    invested_amount: data.investedAmount,
                     quantity: data.quantity,
                     institution: data.institution,
                     start_date: data.startDate,
@@ -698,19 +698,15 @@ export default function InvestmentsPage() {
                     name: data.name || '',
                     type: data.type || 'other',
                     current_value: data.currentValue || 0,
-                    invested_value: data.investedAmount || 0,
+                    invested_amount: data.investedAmount || 0,
                     quantity: data.quantity || null,
                     institution: data.institution || 'Não informada',
-                    start_date: data.startDate || new Date().toISOString(),
-                    profitability: 'N/A',
-                    risk: 'Baixo',
-                    liquidity: 'Alta',
-                    status: 'active'
+                    start_date: data.startDate || new Date().toISOString().split('T')[0]
                 };
 
                 const historyPayload = [{
-                    month: (data.startDate || new Date().toISOString()).substring(0, 7) + '-01',
-                    value: data.investedAmount || 0
+                    date: (data.startDate || new Date().toISOString()).substring(0, 10),
+                    amount: data.investedAmount || 0
                 }];
 
                 await createInvestment(payload, historyPayload);

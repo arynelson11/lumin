@@ -29,8 +29,9 @@ export const createInvestment = async (investmentData: any, historyItems: any[] 
         if (data && historyItems.length > 0) {
             const mappedHistory = historyItems.map(item => ({
                 investment_id: data.id,
-                month: item.month,
-                value: item.value
+                date: item.date || new Date().toISOString().split('T')[0],
+                amount: item.amount,
+                type: 'deposit'
             }));
 
             const { error: histError } = await supabase
