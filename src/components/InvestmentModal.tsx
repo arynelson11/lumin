@@ -39,6 +39,7 @@ export default function InvestmentModal({
     const [quantity, setQuantity] = useState('');
     const [startDate, setStartDate] = useState('');
     const [isSuccess, setIsSuccess] = useState(false);
+    const [unitPriceInput, setUnitPriceInput] = useState<string>('');
     const [unitPrice, setUnitPrice] = useState<number | null>(null);
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,6 +49,7 @@ export default function InvestmentModal({
         const foundKey = Object.keys(MOCK_PRICES).find(k => upperVal.includes(k));
         if (foundKey) {
             setUnitPrice(MOCK_PRICES[foundKey]);
+            setUnitPriceInput(MOCK_PRICES[foundKey].toString());
 
             // Auto-assign type based on asset
             if (['BTC', 'BITCOIN', 'ETH', 'ETHEREUM'].includes(foundKey)) setType('crypto');
@@ -57,18 +59,23 @@ export default function InvestmentModal({
 
         } else {
             setUnitPrice(null);
+            setUnitPriceInput('');
         }
     };
 
-    // Auto calculate current value when unit price and quantity are set
+    // Auto calculate quantity when unit price and invested amount are set
     useEffect(() => {
-        if (!isEdit && unitPrice !== null && quantity !== '') {
-            const q = parseFloat(quantity);
-            if (!isNaN(q)) {
-                setCurrentValue((q * unitPrice).toFixed(2));
+        if (!isEdit && unitPriceInput !== '' && investedAmount !== '') {
+            const uPrice = parseFloat(unitPriceInput);
+            const amt = parseFloat(investedAmount);
+            if (!isNaN(uPrice) && !isNaN(amt) && uPrice > 0) {
+                // Determine precision based on type (crypto needs more decimals)
+                const isCrypto = type === 'crypto' || name.toUpperCase().includes('BTC') || name.toUpperCase().includes('ETH');
+                const preciseQty = amt / uPrice;
+                setQuantity(isCrypto ? preciseQty.toFixed(8) : preciseQty.toFixed(2));
             }
         }
-    }, [unitPrice, quantity, isEdit]);
+    }, [unitPriceInput, investedAmount, isEdit, type, name]);
 
     useEffect(() => {
         if (isOpen) {
@@ -91,6 +98,7 @@ export default function InvestmentModal({
             }
             setIsSuccess(false);
             setUnitPrice(null);
+            setUnitPriceInput('');
         }
     }, [isOpen, initialData]);
 
@@ -238,29 +246,43 @@ export default function InvestmentModal({
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
+                                        <label className="text-sm font-medium text-text-secondary px-1">Cotação (R$)</label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary text-sm">R$</span>
+                                            <input
+                                                type="number"
+                                                placeholder="0.00"
+                                                value={unitPriceInput}
+                                                onChange={(e) => setUnitPriceInput(e.target.value)}
+                                                className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3.5 text-text-primary focus:outline-none focus:ring-1 focus:ring-accent font-medium"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
                                         <label className="text-sm font-medium text-text-secondary px-1">Quantidade de Cotas</label>
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">#</span>
                                             <input
                                                 type="number"
-                                                placeholder="Opcional"
+                                                step="any"
+                                                placeholder="Automático ou manual"
                                                 value={quantity}
                                                 onChange={(e) => setQuantity(e.target.value)}
                                                 className="w-full bg-background border border-border rounded-xl pl-8 pr-4 py-3.5 text-text-primary focus:outline-none focus:ring-1 focus:ring-accent font-medium"
                                             />
                                         </div>
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-sm font-medium text-text-secondary px-1">Data de Início</label>
-                                        <div className="relative">
-                                            <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
-                                            <input
-                                                type="date"
-                                                value={startDate}
-                                                onChange={(e) => setStartDate(e.target.value)}
-                                                className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3.5 text-text-primary appearance-none focus:outline-none focus:ring-1 focus:ring-accent"
-                                            />
-                                        </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium text-text-secondary px-1">Data de Início</label>
+                                    <div className="relative">
+                                        <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+                                        <input
+                                            type="date"
+                                            value={startDate}
+                                            onChange={(e) => setStartDate(e.target.value)}
+                                            className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3.5 text-text-primary appearance-none focus:outline-none focus:ring-1 focus:ring-accent"
+                                        />
                                     </div>
                                 </div>
                             </div>

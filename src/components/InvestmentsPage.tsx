@@ -538,7 +538,7 @@ export default function InvestmentsPage() {
                 yieldAmount: yieldAmt,
                 yieldPercentage: yieldPct,
                 startDate: new Date(d.created_at).toISOString().split('T')[0],
-                history: (d.investment_history || []).map((h: any) => ({
+                history: (d.investment_transactions || []).map((h: any) => ({
                     id: h.id,
                     type: 'deposit',
                     amount: Number(h.value),

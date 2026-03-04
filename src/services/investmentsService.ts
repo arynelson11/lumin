@@ -4,7 +4,7 @@ export const fetchInvestments = async () => {
     try {
         const { data, error } = await supabase
             .from('investments')
-            .select(`*, investment_history (*)`)
+            .select(`*, investment_transactions (*)`)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -34,7 +34,7 @@ export const createInvestment = async (investmentData: any, historyItems: any[] 
             }));
 
             const { error: histError } = await supabase
-                .from('investment_history')
+                .from('investment_transactions')
                 .insert(mappedHistory);
 
             if (histError) throw histError;
