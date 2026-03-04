@@ -627,15 +627,30 @@ export default function InvestmentsPage() {
         } else if (type === 'deposit') {
             openGenericModal(
                 'Novo Aporte',
-                `Registrar um novo aporte para ${selectedInv.name}? Uma transação de saída será registrada nas suas contas.`,
+                `Registrar um novo aporte constante (R$1.000) para ${selectedInv.name}? Uma transação de saída será registrada nas suas contas.`,
                 async () => {
-                    // Update in Supabase
-                    const newInvested = selectedInv.investedAmount + 1000;
-                    const newCurrent = selectedInv.currentValue + 1000;
-                    await updateInvestment(selectedInv.id, { invested_value: newInvested, current_value: newCurrent });
-                    openGenericModal('Sucesso', 'Aporte registrado e saldo da conta atualizado com sucesso.', undefined, 'Fechar');
-                    loadInvestments();
-                    setIsDrawerOpen(false);
+                    try {
+                        const newInvested = selectedInv.investedAmount + 1000;
+                        const newCurrent = selectedInv.currentValue + 1000;
+                        await updateInvestment(selectedInv.id, { invested_value: newInvested, current_value: newCurrent });
+
+                        // Import from supabase lib directly here or rely on the service. We will just add the month to history
+                        const { supabase } = await import('../lib/supabase');
+                        const currentMonth = new Date().toISOString().substring(0, 7) + '-01';
+                        await supabase
+                            .from('investment_transactions')
+                            .insert([{
+                                investment_id: selectedInv.id,
+                                month: currentMonth,
+                                value: 1000
+                            }]);
+
+                        openGenericModal('Sucesso', 'Aporte registrado e saldo da conta atualizado com sucesso.', undefined, 'Fechar');
+                        loadInvestments();
+                        setIsDrawerOpen(false);
+                    } catch (err) {
+                        console.error('Failed to register deposit', err);
+                    }
                 },
                 'Confirmar Aporte'
             );
@@ -666,28 +681,45 @@ export default function InvestmentsPage() {
     };
 
     const handleSave = async (data: Partial<InvestmentData>) => {
-        if (modalData) {
-            await updateInvestment(modalData.id, {
-                name: data.name,
-                type: data.type,
-                current_value: data.currentValue,
-                invested_value: data.investedAmount
-            });
-            loadInvestments();
-        } else {
-            const payload = {
-                name: data.name || '',
-                type: data.type || 'other',
-                current_value: data.currentValue || 0,
-                invested_value: data.investedAmount || 0,
-                profitability: 'N/A',
-                risk: 'Baixo',
-                liquidity: 'Alta',
-                status: 'active'
-            };
-            await createInvestment(payload);
-            loadInvestments();
-            openGenericModal('Transação Registrada', 'Um novo investimento foi adicionado e a transação correspondente (saída) foi sincronizada.', undefined, 'Ótimo');
+        try {
+            if (modalData) {
+                await updateInvestment(modalData.id, {
+                    name: data.name,
+                    type: data.type,
+                    current_value: data.currentValue,
+                    invested_value: data.investedAmount,
+                    quantity: data.quantity,
+                    institution: data.institution,
+                    start_date: data.startDate,
+                });
+                loadInvestments();
+            } else {
+                const payload = {
+                    name: data.name || '',
+                    type: data.type || 'other',
+                    current_value: data.currentValue || 0,
+                    invested_value: data.investedAmount || 0,
+                    quantity: data.quantity || null,
+                    institution: data.institution || 'Não informada',
+                    start_date: data.startDate || new Date().toISOString(),
+                    profitability: 'N/A',
+                    risk: 'Baixo',
+                    liquidity: 'Alta',
+                    status: 'active'
+                };
+
+                const historyPayload = [{
+                    month: (data.startDate || new Date().toISOString()).substring(0, 7) + '-01',
+                    value: data.investedAmount || 0
+                }];
+
+                await createInvestment(payload, historyPayload);
+                loadInvestments();
+                openGenericModal('Transação Registrada', 'Um novo investimento foi adicionado e a transação correspondente (saída) foi sincronizada.', undefined, 'Ótimo');
+            }
+        } catch (err) {
+            console.error('Failed to save investment:', err);
+            openGenericModal('Erro', 'Ocorreu um erro ao salvar o investimento. Verifique os dados.', undefined, 'Fechar');
         }
         setIsModalOpen(false);
     };
