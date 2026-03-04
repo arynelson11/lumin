@@ -22,20 +22,7 @@ export interface InvestmentData {
     history?: { id: string; type: 'deposit' | 'withdrawal' | 'yield'; amount: number; date: string }[];
 }
 
-const globalPortfolioHistory = [
-    { date: '2025-01-01', value: 45000, invested: 40000 },
-    { date: '2025-02-01', value: 48000, invested: 42000 },
-    { date: '2025-03-01', value: 50000, invested: 42000 },
-    { date: '2025-04-01', value: 49000, invested: 45000 },
-    { date: '2025-05-01', value: 53000, invested: 45000 },
-    { date: '2025-06-01', value: 58000, invested: 48000 },
-    { date: '2025-07-01', value: 60500, invested: 50000 },
-    { date: '2025-08-01', value: 65000, invested: 54000 },
-    { date: '2025-09-01', value: 67200, invested: 54000 },
-    { date: '2025-10-01', value: 71000, invested: 57000 },
-    { date: '2025-11-01', value: 75500, invested: 60000 },
-    { date: '2025-12-01', value: 83250.50, invested: 65000 }
-];
+// Removed mock globalPortfolioHistory
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount);
@@ -179,18 +166,85 @@ function InvestmentsSummary({ investments }: { investments: InvestmentData[] }) 
     );
 }
 
-function InvestmentsEvolution() {
+function InvestmentsEvolution({ investments }: { investments: InvestmentData[] }) {
     const [period, setPeriod] = useState('1A');
 
     const filteredHistory = useMemo(() => {
+        if (!investments || investments.length === 0) return [];
+
+        // Aggregate history by month (YYYY-MM-01 format for simple sorting)
+        const historyMap: Record<string, { value: number, invested: number }> = {};
+
+        investments.forEach(inv => {
+            // Include base creation date
+            const createMonth = inv.startDate.substring(0, 7) + '-01';
+            if (!historyMap[createMonth]) historyMap[createMonth] = { value: 0, invested: 0 };
+
+            // If the investment assumes a flat value currently, we just add it.
+            // A perfect chart would calculate historical fluctuating values, but for a 
+            // static overview without complex price APIs, spreading current values works minimally.
+            // Better approach if history transactions exist:
+            let hasHistory = false;
+
+            if (inv.history && inv.history.length > 0) {
+                inv.history.forEach(h => {
+                    const hMonth = h.date;
+                    if (!historyMap[hMonth]) historyMap[hMonth] = { value: 0, invested: 0 };
+                    historyMap[hMonth].invested += h.amount;
+                    historyMap[hMonth].value += h.amount; // simplification
+                    hasHistory = true;
+                });
+            }
+
+            if (!hasHistory) {
+                // If no history, assume created recently and add current values to current month.
+                const currentMonth = new Date().toISOString().substring(0, 7) + '-01';
+                if (!historyMap[currentMonth]) historyMap[currentMonth] = { value: 0, invested: 0 };
+                historyMap[currentMonth].value += inv.currentValue;
+                historyMap[currentMonth].invested += inv.investedAmount;
+            }
+        });
+
+        const sortedMonths = Object.keys(historyMap).sort();
+
+        let cumulativeData = [];
+        let runningInvested = 0;
+        let runningValue = 0;
+
+        for (const month of sortedMonths) {
+            runningInvested += historyMap[month].invested;
+            runningValue += historyMap[month].value;
+            cumulativeData.push({
+                date: month,
+                invested: runningInvested,
+                value: runningValue
+            });
+        }
+
         let months = 12;
         if (period === '1M') months = 1;
         if (period === '3M') months = 3;
         if (period === '6M') months = 6;
-        if (period === 'Tudo') months = globalPortfolioHistory.length;
+        if (period === 'Tudo') months = cumulativeData.length;
 
-        return globalPortfolioHistory.slice(-months);
-    }, [period]);
+        const result = cumulativeData.slice(-months);
+        console.log('InvestmentsEvolution Data:', result);
+        return result;
+    }, [period, investments]);
+
+    if (!filteredHistory || filteredHistory.length === 0) {
+        return (
+            <div className="bg-surface border border-border rounded-2xl p-5 md:p-6 h-full flex flex-col items-center justify-center min-h-[350px]">
+                <div className="w-16 h-16 rounded-full bg-surface-hover flex items-center justify-center text-text-secondary mb-4">
+                    <TrendingUp size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-text-primary mb-2">Evolução da Carteira</h3>
+                <p className="text-sm text-text-secondary text-center max-w-sm">
+                    Você ainda não possui aportes registrados. Cadastre seu primeiro investimento para começar a acompanhar seu patrimônio.
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-surface border border-border rounded-2xl p-5 md:p-6">
@@ -663,7 +717,7 @@ export default function InvestmentsPage() {
 
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                                 <div className="lg:col-span-2">
-                                    <InvestmentsEvolution />
+                                    <InvestmentsEvolution investments={filteredInvestments} />
                                 </div>
                                 <div className="lg:col-span-1">
                                     <InvestmentsAllocation investments={investments} />
