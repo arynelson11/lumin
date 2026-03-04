@@ -51,7 +51,7 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-dvh overflow-hidden">
             {/* Sidebar */}
             <aside className="w-64 border-r border-border bg-surface hidden lg:flex flex-col">
                 <div className="p-6 h-20 flex items-center">

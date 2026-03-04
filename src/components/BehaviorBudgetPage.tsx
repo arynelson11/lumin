@@ -104,7 +104,7 @@ export default function BehaviorBudgetPage() {
 
     if (isConfiguring || !summary?.has_budget) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background h-full h-screen">
+            <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background h-full h-dvh">
                 <motion.div
                     key={wizardStep}
                     initial={{ opacity: 0, x: 20 }}
